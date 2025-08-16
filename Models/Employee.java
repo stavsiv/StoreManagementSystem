@@ -17,9 +17,9 @@ public class Employee {
         ADMIN
     }
 
-    // // authentication
-    // private String username;
-    // private String password;
+    // authentication
+    private String userName;
+    private String password;
 
     // Constructor
     public Employee(String name, String employeeId, String phoneNumber, String accountNumber, int employeeNumber,
@@ -34,11 +34,11 @@ public class Employee {
     }
 
     // Getters & Setters
-    public String getName() {
+    public String getEmployeeName() {
         return fullName;
     }
 
-    public void setName(String name) {
+    public void setEmployeeName(String name) {
         this.fullName = name;
     }
 
@@ -90,20 +90,22 @@ public class Employee {
         this.role = role;
     }
 
-    // // Authentication methods (if needed)
-    // public String getUsername() {
-    // return username;
-    // }
-    // public void setUsername(String username) {
-    // this.username = username;
-    // }
+    // Authentication methods (if needed)
+    public String getUserName() {
+        return userName;
+    }
 
-    // public String getPassword() {
-    // return password;
-    // }
-    // public void setPassword(String password) {
-    // this.password = password;
-    // }
+    public void setUserName(String username) {
+        this.userName = username;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
     @Override
     public String toString() {

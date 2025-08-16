@@ -32,7 +32,7 @@ public class Transaction {
         this.finalPrice = 0.0;
     }
 
-    // Getters - לבדוק לפי ID
+    // Getters & Setters
     public String getTransactionId() {
         return transactionId;
     }
@@ -96,9 +96,9 @@ public class Transaction {
     public String toString() {
         return "Transaction{" +
                 "transactionId='" + transactionId + '\'' +
-                ", customer=" + (customer != null ? customer.getName() : "null") +
-                ", customerId=" + (customer != null ? customer.getId() : "null") +
-                ", employee=" + (employee != null ? employee.getName() : "null") +
+                ", customer=" + (customer != null ? customer.getCustomerName() : "null") +
+                ", customerId=" + (customer != null ? customer.getCustomerId() : "null") +
+                ", employee=" + (employee != null ? employee.getEmployeeName() : "null") +
                 ", employeeId=" + (employee != null ? employee.getEmployeeId() : "null") +
                 ", branch=" + (branch != null ? branch.getBranchName() : "null") +
                 ", date=" + date +

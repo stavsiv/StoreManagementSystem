@@ -15,19 +15,19 @@ public abstract class Customer {
     }
 
     // Getters & Setters
-    public String getName() {
+    public String getCustomerName() {
         return fullName;
     }
 
-    public void setName(String name) {
+    public void setCustomerName(String name) {
         this.fullName = name;
     }
 
-    public String getId() {
+    public String getCustomerId() {
         return customerId;
     }
 
-    public void setId(String id) {
+    public void setCustomerId(String id) {
         this.customerId = id;
     }
 
@@ -41,7 +41,7 @@ public abstract class Customer {
 
     // Abstract methods for discount calculation
 
-    public abstract String getType();
+    public abstract String getCustomerType();
 
     public abstract double calculateFinalPrice(double totalPrice);
 

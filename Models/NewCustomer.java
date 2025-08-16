@@ -10,7 +10,7 @@ public class NewCustomer extends Customer {
     }
 
     @Override
-    public String getType() {
+    public String getCustomerType() {
         return "New";
     }
 
