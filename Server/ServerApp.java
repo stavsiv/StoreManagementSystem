@@ -18,8 +18,8 @@ import Models.Customer;
 import Models.NewCustomer;
 import Models.ReturningCustomer;
 import Models.VIPCustomer;
-import Models.TransactionItem;
-import Models.Transaction;
+//import Models.TransactionItem;
+//import Models.Transaction;
 
 // Services
 import Services.AuthService;
@@ -161,7 +161,7 @@ public class ServerApp {
         }
 
         private boolean login(BufferedReader in, PrintWriter out) throws IOException {
-            out.println("Welcome to the Management System!");
+            out.println("Welcome to the Store Management System!");
             out.println("Please enter your username:");
             String username = in.readLine();
             if (username == null)
@@ -172,24 +172,25 @@ public class ServerApp {
             if (password == null)
                 return false;
 
-            Employee emp = authService.login(username, password);
-            if (emp == null) {
+            Employee loggedInEmployee = authService.login(username, password);
+            if (loggedInEmployee == null) {
                 out.println("ERROR: Invalid credentials or user already logged in. Closing connection...");
                 return false;
             }
 
-            this.loggedInEmployee = emp;
+            this.loggedInEmployee = loggedInEmployee;
             this.currentUsername = username;
-            out.println("Login successful! Hello, " + emp.getEmployeeName() + " (Role: " + emp.getRole() + ")");
+            out.println("Login successful! Hello, " + loggedInEmployee.getEmployeeName() + " (Role: "
+                    + loggedInEmployee.getRole() + ")");
             return true;
         }
 
         private boolean handleCommands(BufferedReader in, PrintWriter out) throws IOException {
-            out.println("Type 'HELP' to see available commands, or 'QUIT' to exit.");
+            out.println("Type 'Menu' to see available commands, or 'Exit' to exit.");
 
             String line;
             while ((line = in.readLine()) != null) {
-                if (line.equalsIgnoreCase("QUIT")) {
+                if (line.equalsIgnoreCase("Exit")) {
                     out.println("Goodbye!");
                     return false;
                 }
@@ -218,7 +219,7 @@ public class ServerApp {
 
             switch (command) {
                 case "Menu":
-                    return showHelp();
+                    return showMenu();
 
                 case "Add Employee":
                     return addEmployeeCommand(parts);
@@ -265,7 +266,7 @@ public class ServerApp {
                     return listChatsCommand();
 
                 default:
-                    return "Unknown command: " + command + ". Type HELP for commands.";
+                    return "Unknown command: " + command + ". Type Menu for commands.";
             }
         }
 
@@ -307,10 +308,10 @@ public class ServerApp {
             return "SUCCESS: logs converted to " + outputDoc;
         }
 
-        private String showHelp() {
-            String baseHelp;
+        private String showMenu() {
+            String baseMenu;
             if (loggedInEmployee.getRole() == Employee.Role.ADMIN) {
-                baseHelp = "Commands for ADMIN:\n" +
+                baseMenu = "Commands for ADMIN:\n" +
                         "ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>\n"
                         +
                         "ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n" +
@@ -322,24 +323,24 @@ public class ServerApp {
                         "LOGS_TO_WORD                - convert JSON logs to Word doc\n" +
                         "LIST_CHATS                  - list all active chat sessions\n" +
                         "LOGOUT                      - Logout\n" +
-                        "QUIT                        - Close the connection";
+                        "Exit                        - Close the connection";
             } else {
-                baseHelp = "Commands:\n" +
+                baseMenu = "Commands:\n" +
                         "ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n" +
                         "SHOW_PRODUCTS                 - show products in your branch\n" +
                         "SELL <productId> <quantity> <customerId>\n" +
                         "BUY_PRODUCT <productId> <quantity> <productName> <category> <price> <branch>\n" +
                         "LOGOUT                        - logout\n" +
-                        "QUIT                          - close connection";
+                        "Exit                          - close connection";
             }
 
-            String chatHelp = "\nChat Commands (ALL roles):\n" +
+            String chatMenu = "\nChat Commands (ALL roles):\n" +
                     "START_CHAT <branchId>         - open a new chat with that branch\n" +
                     "JOIN_CHAT <chatId>            - join an existing chat\n" +
                     "SEND_MSG <message...>         - send a message to the current chat\n" +
                     "SHOW_CHAT                     - show messages in the current chat\n";
 
-            return baseHelp + "\n" + chatHelp;
+            return baseMenu + "\n" + chatMenu;
         }
 
         // ---------------------------------------------------
@@ -373,7 +374,8 @@ public class ServerApp {
             String newUsername = parts[8];
             String newPassword = parts[9];
 
-            Employee newEmp = new Employee(newUsername, id, phone, newPassword, empNum, branch, newEmpRole);
+            Employee newEmp = new Employee(fullName, id, phone, roleStr, empNum, branch, newEmpRole, newUsername,
+                    newPassword);
             newEmp.setUserName(newUsername);
             newEmp.setPassword(newPassword);
             authService.register(newEmp, newUsername, newPassword);
@@ -932,7 +934,7 @@ public class ServerApp {
             System.out.println("Invalid role: " + roleStr);
             return null;
         }
-        Employee e = new Employee(username, id, phone, bankAccount, empNum, branch, role);
+        Employee e = new Employee(fullName, id, phone, roleStr, empNum, branch, role, username, password);
         e.setUserName(username);
         e.setPassword(password);
         return e;

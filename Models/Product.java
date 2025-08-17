@@ -1,7 +1,10 @@
 package Models;
 
+import java.util.HashSet;
+import java.util.Set;
+
 public class Product {
-    private String productId;
+    private String productId; // unique ID
     private String productName;
     private String category;
     private double price;
@@ -24,13 +27,23 @@ public class Product {
         setBranch(branch);
     }
 
+    // Static sets for uniqueness checks
+    private static final Set<String> existingProductIds = new HashSet<>();
+
     // Getters & Setters
     public String getProductId() {
         return productId;
     }
 
     public void setProductId(String productId) {
+        if (productId == null || productId.isEmpty()) {
+            throw new IllegalArgumentException("Product ID cannot be null or empty.");
+        }
+        if (existingProductIds.contains(productId)) {
+            throw new IllegalArgumentException("Product ID already exists: " + productId);
+        }
         this.productId = productId;
+        existingProductIds.add(productId);
     }
 
     public String getProductName() {
@@ -54,6 +67,9 @@ public class Product {
     }
 
     public void setPrice(double price) {
+        if (price < 0) {
+            throw new IllegalArgumentException("Price cannot be negative.");
+        }
         this.price = price;
     }
 
@@ -62,6 +78,9 @@ public class Product {
     }
 
     public void setQuantityInStock(int quantityInStock) {
+        if (quantityInStock < 0) {
+            throw new IllegalArgumentException("Quantity in stock cannot be negative.");
+        }
         this.quantityInStock = quantityInStock;
     }
 

@@ -8,6 +8,7 @@ public class ClientApp {
     private String host;
     private int port;
 
+    // Constructor
     public ClientApp(String host, int port) {
         this.host = host;
         this.port = port;
@@ -26,7 +27,7 @@ public class ClientApp {
                 try {
                     String line;
                     while ((line = in.readLine()) != null) {
-                        System.out.println("SERVER> " + line);
+                        System.out.println("Server--> " + line);
                     }
                 } catch (IOException e) {
                     // connection closed
@@ -36,8 +37,8 @@ public class ClientApp {
 
             while (true) {
                 String userInput = scanner.nextLine();
-                if ("QUIT".equalsIgnoreCase(userInput)) {
-                    out.println("QUIT");
+                if ("Quit".equalsIgnoreCase(userInput)) {
+                    out.println("Quit");
                     break;
                 }
                 out.println(userInput);
@@ -51,7 +52,7 @@ public class ClientApp {
     }
 
     public static void main(String[] args) {
-        ClientApp client = new ClientApp("localhost", 12345);
+        ClientApp client = new ClientApp("localhost", 3000);
         client.start();
     }
 }

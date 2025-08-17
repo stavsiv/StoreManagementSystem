@@ -1,0 +1,18 @@
+[2025-01-26 23:17:36] SELL: Employee 'Bob Manager' in branch 'B001' sold productId='P100' (qty=5) to customer 'John Doe'
+[2025-01-26 23:22:11] BUY: Employee 'Bob Manager' in branch 'B001' purchased more of productId='P300' (qty=25)
+[2025-01-27 13:01:51] CHAT: Employee 'Bob Manager' (branch='B001') STARTED a chat with branch='B002'; chatId='CHAT-1000'
+[2025-01-27 13:02:08] CHAT: Employee 'shani' (branch='B002') JOINED chatId='CHAT-1000'
+[2025-01-27 13:02:37] CHAT: Employee 'shani' (branch='B002') SENT a message to chatId='CHAT-1000': "Hello ronel"
+[2025-01-27 13:04:48] CHAT: Employee 'Alice Admin' (branch='HQ') JOINED chatId='CHAT-1000'
+[2025-01-27 17:26:14] CHAT: Employee 'Bob Manager' (branch='B001') STARTED a chat with branch='fiziboobahlah'; chatId='CHAT-1000'
+[2025-01-27 17:27:03] CHAT: Employee 'Cathy Cashier' (branch='B002') JOINED chatId='CHAT-1000'
+[2025-01-27 18:25:26] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:40:37] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:45:50] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:48:06] SELL: Employee 'Cathy Cashier' in branch 'B002' sold productId='P100' (qty=5) to customer 'ron'
+[2025-01-27 18:50:05] SELL: Employee 'Cathy Cashier' in branch 'B002' sold productId='P300' (qty=6) to customer 'ron'
+[2025-01-27 18:50:50] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:53:35] SELL: Employee 'Bob Manager' in branch 'B001' sold productId='P100' (qty=6) to customer 'ron'
+[2025-01-27 18:54:01] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:55:00] SELL: Employee 'Bob Manager' in branch 'B001' sold productId='P100' (qty=7) to customer 'ron'
+[2025-01-27 18:55:22] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
