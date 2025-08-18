@@ -18,6 +18,7 @@ import Models.Customer;
 import Models.NewCustomer;
 import Models.ReturningCustomer;
 import Models.VIPCustomer;
+import Models.Role;
 //import Models.TransactionItem;
 //import Models.Transaction;
 
@@ -271,7 +272,7 @@ public class ServerApp {
         // NEW COMMAND: LOGS_TO_WORD
         // =========================================================
         private String logsToWordCommand() {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can convert logs to Word.";
             }
 
@@ -309,7 +310,7 @@ public class ServerApp {
             StringBuilder sb = new StringBuilder();
             sb.append("=== COMMAND MENU ===\n");
 
-            if (loggedInEmployee.getRole() == Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() == Role.ADMIN) {
                 sb.append("ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>\n");
                 sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
                 sb.append("SHOW_EMPLOYEES - display all employees\n");
@@ -342,57 +343,106 @@ public class ServerApp {
         // ---------------------------------------------------
         // ADD_EMPLOYEE command (with logging)
         // ---------------------------------------------------
+//        private String addEmployeeCommand(String[] parts) {
+//            if (loggedInEmployee.getRole() != Role.ADMIN) {
+//                return "ERROR: Only ADMIN can add employees.";
+//            }
+//
+//            if (parts.length < 10) {
+//                return "Usage: ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>";
+//            }
+//
+//            int currentIndex = 1;
+//            StringBuilder nameBuilder = new StringBuilder();
+//
+//            while (currentIndex < parts.length && !parts[currentIndex].matches("\\d+")) {
+//                if (nameBuilder.length() > 0) {
+//                    nameBuilder.append(" ");
+//                }
+//                nameBuilder.append(parts[currentIndex]);
+//                currentIndex++;
+//            }
+//
+//            String fullName = nameBuilder.toString();
+//            String id = parts[currentIndex++];
+//            String phone = parts[currentIndex++];
+//            String bankAcc = parts[currentIndex++];
+//            String branch = parts[currentIndex++];
+//            int empNum = Integer.parseInt(parts[currentIndex++]);
+//            String roleStr = parts[currentIndex++].toUpperCase();
+//            Role newEmpRole = Role.valueOf(roleStr);
+//            String newUsername = parts[currentIndex++];
+//            String newPassword = parts[currentIndex++];
+//
+//            Employee newEmp = new Employee(fullName, id, phone, bankAcc, empNum, branch, newEmpRole, newUsername, newPassword);
+//
+//            boolean added = employeeService.addEmployee(newEmp);
+//            if (!added) {
+//                return "ERROR: Employee with same ID, number, or username already exists.";
+//            }
+//
+//            authService.register(newEmp, newUsername, newPassword);
+//            saveEmployeesToFile(EMPLOYEES_FILE);
+//
+//            return "SUCCESS: added new employee: " + newEmp.getFullName();
+//
+//        }
+
         private String addEmployeeCommand(String[] parts) {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can add employees.";
             }
+
             if (parts.length < 10) {
                 return "Usage: ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>";
             }
-            String fullName = parts[1];
-            String id = parts[2];
-            String phone = parts[3];
-            String bankAcc = parts[4];
-            String branch = parts[5];
-            int empNum;
-            try {
-                empNum = Integer.parseInt(parts[6]);
-            } catch (NumberFormatException e) {
-                return "ERROR: employeeNumber must be integer.";
+
+            int currentIndex = 1;
+            StringBuilder nameBuilder = new StringBuilder();
+            while (currentIndex < parts.length && !parts[currentIndex].matches("\\d+")) {
+                if (nameBuilder.length() > 0) nameBuilder.append(" ");
+                nameBuilder.append(parts[currentIndex]);
+                currentIndex++;
             }
-            String roleStr = parts[7].toUpperCase();
-            Employee.Role newEmpRole;
+
             try {
-                newEmpRole = Employee.Role.valueOf(roleStr);
-            } catch (Exception e) {
-                return "ERROR: invalid role.";
+                String fullName = nameBuilder.toString();
+                String id = parts[currentIndex++];
+                String phone = parts[currentIndex++];
+                String bankAcc = parts[currentIndex++];
+                String branch = parts[currentIndex++];
+                int empNum = Integer.parseInt(parts[currentIndex++]);
+                String roleStr = parts[currentIndex++].toUpperCase();
+                Role newEmpRole = Role.valueOf(roleStr);
+                String newUsername = parts[currentIndex++];
+                String newPassword = parts[currentIndex++];
+
+                Employee newEmp = new Employee(fullName, id, phone, bankAcc, empNum, branch, newEmpRole, newUsername, newPassword);
+
+                if (!employeeService.addEmployee(newEmp)) {
+                    return "ERROR: Employee with same username, ID or number already exists.";
+                }
+
+                authService.register(newEmp, newUsername, newPassword);
+                saveEmployeesToFile(EMPLOYEES_FILE);
+
+                return "SUCCESS: added new employee: " + newEmp.getFullName();
+
+            } catch (IllegalArgumentException ex) {
+                return "ERROR: " + ex.getMessage(); // כאן נקבל "Password must be at least 4 characters" או כל שגיאה אחרת
+            } catch (Exception ex) {
+                return "ERROR: Invalid input or role.";
             }
-            String newUsername = parts[8];
-            String newPassword = parts[9];
-
-            Employee newEmp = new Employee(fullName, id, phone, roleStr, empNum, branch, newEmpRole, newUsername,
-                    newPassword);
-            newEmp.setUserName(newUsername);
-            newEmp.setPassword(newPassword);
-            authService.register(newEmp, newUsername, newPassword);
-            employeeService.addEmployee(newEmp);
-
-            saveEmployeesToFile(EMPLOYEES_FILE);
-
-            // Log the hiring
-            String logMsg = String.format("ADMIN '%s' hired employee '%s' (ID=%s) in branch '%s'",
-                    loggedInEmployee.getFullName(), newEmp.getFullName(), newEmp.getEmployeeId(),
-                    newEmp.getBranchId());
-            logAction(logMsg);
-
-            return "SUCCESS: added new employee: " + newEmp;
         }
+
+
+
 
         // ---------------------------------------------------
         // SELL command (with logging)
         // ---------------------------------------------------
         private String sellCommand(String[] parts) {
-            if (loggedInEmployee.getRole() == Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() == Role.ADMIN) {
                 return "ERROR: ADMIN cannot SELL products.";
             }
             if (parts.length < 4) {
@@ -430,7 +480,7 @@ public class ServerApp {
         // BUY_PRODUCT command (with logging)
         // ---------------------------------------------------
         private String buyProductCommand(String[] parts) {
-            if (loggedInEmployee.getRole() == Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() == Role.ADMIN) {
                 return "ERROR: ADMIN cannot buy products.";
             }
             if (parts.length < 7) {
@@ -530,8 +580,9 @@ public class ServerApp {
         // ---------------------------------------------------
         // showEmployees, showProducts, showCustomers
         // ---------------------------------------------------
+
         private String showEmployees() {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can view all employees.";
             }
             List<Employee> all = employeeService.listAllEmployees();
@@ -539,20 +590,28 @@ public class ServerApp {
                 return "No employees found.";
             }
             StringBuilder sb = new StringBuilder();
-            sb.append(String.format("%-20s %-10s %-15s %-15s %-10s %-10s %-10s\n",
-                    "Name", "ID", "Phone", "BankAccount", "Branch", "EmpNum", "Role"));
-            sb.append(
-                    "---------------------------------------------------------------------------------------------\n");
+
+            sb.append(String.format("%-20s %-12s %-15s %-15s %-8s %-10s %-15s %-12s\n",
+                    "Name", "ID", "Phone", "BankAccount", "Branch", "EmpNum", "Role", "Username"));
+            sb.append("---------------------------------------------------------------------------------------------------------------\n");
+
             for (Employee emp : all) {
-                sb.append(String.format("%-20s %-10s %-15s %-15s %-10s %-10d %-10s\n",
-                        emp.getFullName(), emp.getEmployeeId(), emp.getPhoneNumber(), emp.getAccountNumber(),
-                        emp.getBranchId(), emp.getEmployeeNumber(), emp.getRole()));
+                sb.append(String.format("%-20s %-12s %-15s %-15s %-8s %-10d %-15s %-12s\n",
+                        emp.getFullName(),
+                        emp.getEmployeeId(),
+                        emp.getPhoneNumber(),
+                        emp.getAccountNumber(),
+                        emp.getBranchId(),
+                        emp.getEmployeeNumber(),
+                        emp.getRole(),
+                        emp.getUserName()));
             }
             return sb.toString();
         }
 
+
         private String showProducts() {
-            if (loggedInEmployee.getRole() == Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() == Role.ADMIN) {
                 return productService.getFormattedAllProducts();
             } else {
                 String branch = loggedInEmployee.getBranchId();
@@ -565,7 +624,7 @@ public class ServerApp {
         }
 
         private String showCustomers() {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can view all customers.";
             }
             List<Customer> allCustomers = customerService.listAllCustomers();
@@ -587,7 +646,7 @@ public class ServerApp {
         // SAVE_SALES, buildJsonFromSalesMap, viewSalesLogs
         // ---------------------------------------------------
         private String saveSalesLogs() {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can save sales logs.";
             }
             List<SaleRecord> allSales = SaleService.getAllSales();
@@ -656,7 +715,7 @@ public class ServerApp {
         }
 
         private String viewSalesLogs() {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can view sales logs.";
             }
             File logsDir = new File("logs");
@@ -752,7 +811,7 @@ public class ServerApp {
                 return "ERROR: Current chat is no longer active.";
             }
             String userBranch = loggedInEmployee.getBranchId();
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN
+            if (loggedInEmployee.getRole() != Role.ADMIN
                     && !session.getBranchesInvolved().contains(userBranch)) {
                 return "ERROR: Your branch is not part of this chat, and you are not admin.";
             }
@@ -781,7 +840,7 @@ public class ServerApp {
                 return "ERROR: That chat is no longer active.";
             }
             String userBranch = loggedInEmployee.getBranchId();
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN
+            if (loggedInEmployee.getRole() != Role.ADMIN
                     && !session.getBranchesInvolved().contains(userBranch)) {
                 return "ERROR: Your branch is not part of this chat, and you are not admin.";
             }
@@ -806,7 +865,7 @@ public class ServerApp {
         }
 
         private String listChatsCommand() {
-            if (loggedInEmployee.getRole() != Employee.Role.ADMIN) {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can list all chats.";
             }
             Collection<ChatSession> allChats = ChatService.listAllChats();
@@ -874,40 +933,6 @@ public class ServerApp {
         return new Branch(branchId, branchName);
     }
 
-//    private void loadEmployeesFromFile(String filePath) {
-//        File f = new File(filePath);
-//        if (!f.exists()) {
-//            System.out.println("No employees file found at " + filePath + ". Skipping load.");
-//            return;
-//        }
-//
-//        String jsonContent = readWholeFile(f);
-//        if (jsonContent == null || jsonContent.trim().isEmpty()) {
-//            System.out.println("Employees file is empty. Skipping.");
-//            return;
-//        }
-//
-//        String trimmed = jsonContent.trim();
-//        if (trimmed.startsWith("["))
-//            trimmed = trimmed.substring(1);
-//        if (trimmed.endsWith("]"))
-//            trimmed = trimmed.substring(0, trimmed.length() - 1);
-//
-//        String[] objectStrings = trimmed.split("\\},\\s*\\{");
-//        for (String objStr : objectStrings) {
-//            String empJson = objStr.trim();
-//            if (!empJson.startsWith("{"))
-//                empJson = "{" + empJson;
-//            if (!empJson.endsWith("}"))
-//                empJson += "}";
-//            Employee e = parseEmployeeFromJson(empJson);
-//            if (e != null) {
-//                authService.register(e, e.getUserName(), e.getPassword());
-//                employeeService.addEmployee(e);
-//            }
-//        }
-//        System.out.println("Loaded employees from file: " + filePath);
-//    }
 private void loadEmployeesFromFile(String filePath) {
     File f = new File(filePath);
     if (!f.exists()) return;
@@ -938,31 +963,31 @@ private void loadEmployeesFromFile(String filePath) {
 
     private Employee parseEmployeeFromJson(String json) {
         String fullName = extractJsonStringValue(json, "fullName");
-        String id = extractJsonStringValue(json, "employeeId");
-        String phone = extractJsonStringValue(json, "phoneNumber");
-        String bankAccount = extractJsonStringValue(json, "accountNumber");
-        int empNum = extractJsonIntValue(json, "employeeNumber");
-        String branch = extractJsonStringValue(json, "branchId");
+        String employeeId = extractJsonStringValue(json, "employeeId");
+        String phoneNumber = extractJsonStringValue(json, "phoneNumber");
+        String accountNumber = extractJsonStringValue(json, "accountNumber");
+        int employeeNumber = extractJsonIntValue(json, "employeeNumber");
+        String branchId = extractJsonStringValue(json, "branchId");
         String roleStr = extractJsonStringValue(json, "role");
-        String username = extractJsonStringValue(json, "userName");
+        String userName = extractJsonStringValue(json, "userName");
         String password = extractJsonStringValue(json, "password");
 
-        if (fullName == null || id == null || roleStr == null) {
+        if (fullName == null || employeeId == null || roleStr == null) {
             System.out.println("Invalid employee JSON: missing required fields.\n" + json);
             return null;
         }
-        Employee.Role role;
+
+        Role role;
         try {
-            role = Employee.Role.valueOf(roleStr.toUpperCase());
+            role = Role.valueOf(roleStr.toUpperCase());
         } catch (Exception ex) {
             System.out.println("Invalid role: " + roleStr);
             return null;
         }
-        Employee e = new Employee(fullName, id, phone, roleStr, empNum, branch, role, username, password);
-        e.setUserName(username);
-        e.setPassword(password);
-        return e;
+        Employee newEmp = new Employee(fullName, employeeId, phoneNumber, accountNumber, employeeNumber, branchId, role, userName, password);
+        return newEmp;
     }
+
 
     private void loadProductsFromFile(String filePath) {
         File f = new File(filePath);
@@ -1199,13 +1224,13 @@ private void loadEmployeesFromFile(String filePath) {
             Employee e = employees.get(i);
             sb.append("  {\n");
             sb.append("    \"fullName\": \"").append(e.getFullName()).append("\",\n");
-            sb.append("    \"id\": \"").append(e.getEmployeeId()).append("\",\n");
-            sb.append("    \"phone\": \"").append(e.getPhoneNumber()).append("\",\n");
-            sb.append("    \"bankAccount\": \"").append(e.getAccountNumber()).append("\",\n");
-            sb.append("    \"branch\": \"").append(e.getBranchId()).append("\",\n");
+            sb.append("    \"employeeId\": \"").append(e.getEmployeeId()).append("\",\n");
+            sb.append("    \"phoneNumber\": \"").append(e.getPhoneNumber()).append("\",\n");
+            sb.append("    \"accountNumber\": \"").append(e.getAccountNumber()).append("\",\n");
             sb.append("    \"employeeNumber\": ").append(e.getEmployeeNumber()).append(",\n");
+            sb.append("    \"branchId\": \"").append(e.getBranchId()).append("\",\n");
             sb.append("    \"role\": \"").append(e.getRole()).append("\",\n");
-            sb.append("    \"username\": \"").append(e.getUserName()).append("\",\n");
+            sb.append("    \"userName\": \"").append(e.getUserName()).append("\",\n");
             sb.append("    \"password\": \"").append(e.getPassword()).append("\"\n");
             sb.append("  }");
             if (i < employees.size() - 1) {

@@ -11,9 +11,6 @@ public class Employee {
     private String userName;
     private String password;
 
-    public enum Role {
-        SHIFT_MANAGER, CASHIER, SELLER, ADMIN
-    }
 
     public Employee() { }
 

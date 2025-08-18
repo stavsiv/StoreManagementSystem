@@ -18,6 +18,8 @@ public class EmployeeService {
         for (Employee emp : employees) {
             if (emp.getUserName().equals(e.getUserName())) return false;
             if (emp.getEmployeeId().equals(e.getEmployeeId())) return false;
+            if (emp.getEmployeeNumber() == e.getEmployeeNumber()) return false; // compare int
+
         }
         employees.add(e);
         return true;
