@@ -49,13 +49,14 @@ public class ServerApp {
     private ChatService chatService;
 
     // File paths for reading/writing JSON on startup or updates
-    private static final String BRANCHES_FILE = "data/branches.json";
-    private static final String EMPLOYEES_FILE = "data/employees.json";
-    private static final String PRODUCTS_FILE = "data/products.json";
-    private static final String CUSTOMERS_FILE = "data/customers.json";
+    private static final String BRANCHES_FILE = "Data/branches.json";
+    private static final String EMPLOYEES_FILE = "Data/employees.json";
+    private static final String PRODUCTS_FILE = "Data/products.json";
+    private static final String CUSTOMERS_FILE = "Data/customers.json";
+
 
     // logging appended actions to "logs/actions.log"
-    private static final String ACTION_LOG_FILE = "logs/actions.log";
+    private static final String ACTION_LOG_FILE = "Logs/actions.log";
 
     public ServerApp(int port) {
         this.port = port;
@@ -72,6 +73,9 @@ public class ServerApp {
         // Load existing data
         loadBranchesFromFile(BRANCHES_FILE);
         loadEmployeesFromFile(EMPLOYEES_FILE);
+        for (Employee e : employeeService.listAllEmployees()) {
+            authService.register(e, e.getUserName(), e.getPassword());
+        }
         loadProductsFromFile(PRODUCTS_FILE);
         loadCustomersFromFile(CUSTOMERS_FILE);
 
@@ -180,95 +184,88 @@ public class ServerApp {
 
             this.loggedInEmployee = loggedInEmployee;
             this.currentUsername = username;
-            out.println("Login successful! Hello, " + loggedInEmployee.getEmployeeName() + " (Role: "
+            out.println("Login successful! Hello, " + loggedInEmployee.getFullName() + " (Role: "
                     + loggedInEmployee.getRole() + ")");
             return true;
         }
 
         private boolean handleCommands(BufferedReader in, PrintWriter out) throws IOException {
-            out.println("Type 'Menu' to see available commands, or 'Exit' to exit.");
+            out.println("Type 'MENU' to see available commands, or 'EXIT' to exit.");
 
             String line;
             while ((line = in.readLine()) != null) {
-                if (line.equalsIgnoreCase("Exit")) {
+                line = line.trim();
+                if (line.equalsIgnoreCase("EXIT")) {
                     out.println("Goodbye!");
                     return false;
                 }
 
-                if (line.equalsIgnoreCase("LOGOUT")) {
-                    authService.logout(currentUsername);
-                    loggedInEmployee = null;
-                    currentUsername = null;
-                    out.println("You have been logged out. Returning to login screen...");
-                    return true;
-                }
-
                 String response = handleCommand(line);
                 out.println(response);
+
+                // Handle logout separately
+                if (response.contains("Returning to login screen")) {
+                    return true; // back to login
+                }
             }
             return false;
         }
 
         private String handleCommand(String line) {
+            line = line.trim();
+            if (line.isEmpty()) return "";
+
             if (line.toUpperCase().startsWith("SEND_MSG")) {
                 return sendMessageCommand(line);
             }
 
+            // Normalize command: replace spaces with underscores and uppercase
             String[] parts = line.split(" ");
-            String command = parts[0].toUpperCase();
+            String command = parts[0].toUpperCase().replace(" ", "_");
 
             switch (command) {
-                case "Menu":
+                case "MENU":
                     return showMenu();
-
-                case "Add Employee":
+                case "ADD_EMPLOYEE":
                     return addEmployeeCommand(parts);
-
                 case "SHOW_EMPLOYEES":
                     return showEmployees();
-
                 case "SHOW_PRODUCTS":
                     return showProducts();
-
                 case "SELL":
                     return sellCommand(parts);
-
                 case "BUY_PRODUCT":
                     return buyProductCommand(parts);
-
                 case "SAVE_SALES":
                     return saveSalesLogs();
-
                 case "VIEW_SALES_LOGS":
                     return viewSalesLogs();
-
                 case "ADD_CUSTOMER":
                     return addCustomerCommand(parts);
-
                 case "SHOW_CUSTOMERS":
                     return showCustomers();
-
-                // ----- The NEW command to convert logs to Word ------
                 case "LOGS_TO_WORD":
                     return logsToWordCommand();
-
-                // Chat commands
                 case "START_CHAT":
                     return startChatCommand(parts);
-
                 case "JOIN_CHAT":
                     return joinChatCommand(parts);
-
                 case "SHOW_CHAT":
                     return showChatWithoutParam();
-
                 case "LIST_CHATS":
                     return listChatsCommand();
-
+                case "LOGOUT":
+                    authService.logout(currentUsername);
+                    loggedInEmployee = null;
+                    currentUsername = null;
+                    return "You have been logged out. Returning to login screen...";
+                case "EXIT":
+                    return "Goodbye!";
                 default:
-                    return "Unknown command: " + command + ". Type Menu for commands.";
+                    return "Unknown command: " + command + ". Type MENU for commands.";
             }
         }
+
 
         // =========================================================
         // NEW COMMAND: LOGS_TO_WORD
@@ -302,46 +299,45 @@ public class ServerApp {
 
             // Log this action
             String logMsg = String.format("ADMIN '%s' converted logs to Word doc at '%s'.",
-                    loggedInEmployee.getEmployeeName(), outputDoc);
+                    loggedInEmployee.getFullName(), outputDoc);
             logAction(logMsg);
 
             return "SUCCESS: logs converted to " + outputDoc;
         }
 
         private String showMenu() {
-            String baseMenu;
+            StringBuilder sb = new StringBuilder();
+            sb.append("=== COMMAND MENU ===\n");
+
             if (loggedInEmployee.getRole() == Employee.Role.ADMIN) {
-                baseMenu = "Commands for ADMIN:\n" +
-                        "ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>\n"
-                        +
-                        "ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n" +
-                        "SHOW_PRODUCTS               - show ALL products\n" +
-                        "SHOW_EMPLOYEES              - show ALL employees\n" +
-                        "SHOW_CUSTOMERS              - show ALL customers\n" +
-                        "SAVE_SALES                  - save sales logs to JSON files\n" +
-                        "VIEW_SALES_LOGS             - view saved JSON logs\n" +
-                        "LOGS_TO_WORD                - convert JSON logs to Word doc\n" +
-                        "LIST_CHATS                  - list all active chat sessions\n" +
-                        "LOGOUT                      - Logout\n" +
-                        "Exit                        - Close the connection";
+                sb.append("ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>\n");
+                sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
+                sb.append("SHOW_EMPLOYEES - display all employees\n");
+                sb.append("SHOW_PRODUCTS - display all products\n");
+                sb.append("SHOW_CUSTOMERS - display all customers\n");
+                sb.append("SAVE_SALES - save sales logs to JSON\n");
+                sb.append("VIEW_SALES_LOGS - view saved logs\n");
+                sb.append("LOGS_TO_WORD - convert logs to Word doc\n");
             } else {
-                baseMenu = "Commands:\n" +
-                        "ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n" +
-                        "SHOW_PRODUCTS                 - show products in your branch\n" +
-                        "SELL <productId> <quantity> <customerId>\n" +
-                        "BUY_PRODUCT <productId> <quantity> <productName> <category> <price> <branch>\n" +
-                        "LOGOUT                        - logout\n" +
-                        "Exit                          - close connection";
+                sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
+                sb.append("SHOW_PRODUCTS - display products in your branch\n");
+                sb.append("SELL <productId> <quantity> <customerId>\n");
+                sb.append("BUY_PRODUCT <productId> <quantity> <productName> <category> <price> <branch>\n");
             }
 
-            String chatMenu = "\nChat Commands (ALL roles):\n" +
-                    "START_CHAT <branchId>         - open a new chat with that branch\n" +
-                    "JOIN_CHAT <chatId>            - join an existing chat\n" +
-                    "SEND_MSG <message...>         - send a message to the current chat\n" +
-                    "SHOW_CHAT                     - show messages in the current chat\n";
+            sb.append("LOGOUT - logout\n");
+            sb.append("EXIT - close connection\n");
+            sb.append("--- Chat Commands ---\n");
+            sb.append("START_CHAT <branchId>\n");
+            sb.append("JOIN_CHAT <chatId>\n");
+            sb.append("SEND_MSG <message...>\n");
+            sb.append("SHOW_CHAT\n");
+            sb.append("LIST_CHATS\n");
+            sb.append("====================");
 
-            return baseMenu + "\n" + chatMenu;
+            return sb.toString();
         }
+
 
         // ---------------------------------------------------
         // ADD_EMPLOYEE command (with logging)
@@ -385,7 +381,7 @@ public class ServerApp {
 
             // Log the hiring
             String logMsg = String.format("ADMIN '%s' hired employee '%s' (ID=%s) in branch '%s'",
-                    loggedInEmployee.getEmployeeName(), newEmp.getEmployeeName(), newEmp.getEmployeeId(),
+                    loggedInEmployee.getFullName(), newEmp.getFullName(), newEmp.getEmployeeId(),
                     newEmp.getBranchId());
             logAction(logMsg);
 
@@ -409,10 +405,10 @@ public class ServerApp {
             } catch (NumberFormatException e) {
                 return "ERROR: quantity must be an integer.";
             }
-            String custId = parts[3];
-            Customer customer = customerService.getCustomerById(custId);
+            String customerId = parts[3];
+            Customer customer = customerService.getCustomerById(customerId);
             if (customer == null) {
-                return "ERROR: No customer found with ID " + custId + ". Please ADD_CUSTOMER first.";
+                return "ERROR: No customer found with ID " + customerId + ". Please ADD_CUSTOMER first.";
             }
             double finalPrice = saleService.purchaseProduct(customer, productId, qty);
             if (finalPrice < 0) {
@@ -422,11 +418,11 @@ public class ServerApp {
             // Log the SELL
             String logMsg = String.format(
                     "SELL: Employee '%s' in branch '%s' sold productId='%s' (qty=%d) to customer '%s'",
-                    loggedInEmployee.getEmployeeName(), loggedInEmployee.getBranchId(),
+                    loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(),
                     productId, qty, customer.getCustomerName());
             logAction(logMsg);
 
-            return "SUCCESS: Sold " + qty + " of " + productId + " to " + custId
+            return "SUCCESS: Sold " + qty + " of " + productId + " to " + customerId
                     + " (" + customer.getCustomerName() + "). Final price: " + finalPrice;
         }
 
@@ -473,13 +469,13 @@ public class ServerApp {
                 // Log the BUY
                 String logMsg = String.format(
                         "BUY: Employee '%s' in branch '%s' purchased more of productId='%s' (qty=%d)",
-                        loggedInEmployee.getEmployeeName(), empBranch, productId, quantity);
+                        loggedInEmployee.getFullName(), empBranch, productId, quantity);
                 logAction(logMsg);
 
                 return "SUCCESS: Product " + productId + " stock increased by " + quantity
                         + ". New total = " + newStock;
             } else {
-                // brand new product
+                // brand-new product
                 Product newProduct = new Product(productId, productName, category, price, quantity, branch);
                 productService.addProduct(newProduct);
                 saveProductsToFile(PRODUCTS_FILE);
@@ -487,7 +483,7 @@ public class ServerApp {
                 // Log the new product buy
                 String logMsg = String.format(
                         "BUY: Employee '%s' in branch '%s' created new product '%s' (id=%s) with qty=%d",
-                        loggedInEmployee.getEmployeeName(), empBranch, productName, productId, quantity);
+                        loggedInEmployee.getFullName(), empBranch, productName, productId, quantity);
                 logAction(logMsg);
 
                 return "SUCCESS: Created new product " + productId + " with stock = " + quantity;
@@ -505,27 +501,27 @@ public class ServerApp {
             String id = parts[2];
             String phone = parts[3];
             String type = parts[4].toUpperCase();
-            Customer cust;
+            Customer customer;
             switch (type) {
                 case "NEW":
-                    cust = new NewCustomer(name, id, phone);
+                    customer = new NewCustomer(name, id, phone);
                     break;
                 case "RETURNING":
-                    cust = new ReturningCustomer(name, id, phone);
+                    customer = new ReturningCustomer(name, id, phone);
                     break;
                 case "VIP":
-                    cust = new VIPCustomer(name, id, phone);
+                    customer = new VIPCustomer(name, id, phone);
                     break;
                 default:
                     return "ERROR: unknown customer type: " + type;
             }
-            customerService.addCustomer(cust);
+            customerService.addCustomer(customer);
             saveCustomersToFile(CUSTOMERS_FILE);
 
             // Log the new customer
             String logMsg = String.format("Employee '%s' (Role=%s) added new customer '%s' (ID=%s)",
-                    loggedInEmployee.getEmployeeName(), loggedInEmployee.getRole(), cust.getCustomerName(),
-                    cust.getCustomerId());
+                    loggedInEmployee.getFullName(), loggedInEmployee.getRole(), customer.getCustomerName(),
+                    customer.getCustomerId());
             logAction(logMsg);
 
             return "SUCCESS: Created new " + type + " customer: " + name + " (ID=" + id + ")";
@@ -549,7 +545,7 @@ public class ServerApp {
                     "---------------------------------------------------------------------------------------------\n");
             for (Employee emp : all) {
                 sb.append(String.format("%-20s %-10s %-15s %-15s %-10s %-10d %-10s\n",
-                        emp.getEmployeeName(), emp.getEmployeeId(), emp.getPhoneNumber(), emp.getAccountNumber(),
+                        emp.getFullName(), emp.getEmployeeId(), emp.getPhoneNumber(), emp.getAccountNumber(),
                         emp.getBranchId(), emp.getEmployeeNumber(), emp.getRole()));
             }
             return sb.toString();
@@ -580,9 +576,9 @@ public class ServerApp {
             sb.append(String.format("%-20s %-10s %-15s %-15s\n",
                     "Name", "ID", "Phone", "Type"));
             sb.append("-------------------------------------------------------------\n");
-            for (Customer cust : allCustomers) {
+            for (Customer customer : allCustomers) {
                 sb.append(String.format("%-20s %-10s %-15s %-15s\n",
-                        cust.getCustomerName(), cust.getCustomerId(), cust.getPhoneNumber(), cust.getCustomerType()));
+                        customer.getCustomerName(), customer.getCustomerId(), customer.getPhoneNumber(), customer.getCustomerType()));
             }
             return sb.toString();
         }
@@ -705,7 +701,7 @@ public class ServerApp {
             // Log that this employee started a chat
             String logMsg = String.format(
                     "CHAT: Employee '%s' (branch='%s') STARTED a chat with branch='%s'; chatId='%s'",
-                    loggedInEmployee.getEmployeeName(), myBranch, targetBranch, chatId);
+                    loggedInEmployee.getFullName(), myBranch, targetBranch, chatId);
             logAction(logMsg);
 
             return "Chat started with " + targetBranch + ". Current chat = " + chatId;
@@ -731,7 +727,7 @@ public class ServerApp {
 
             // Log that this employee joined an existing chat
             String logMsg = String.format("CHAT: Employee '%s' (branch='%s') JOINED chatId='%s'",
-                    loggedInEmployee.getEmployeeName(), userBranch, chatId);
+                    loggedInEmployee.getFullName(), userBranch, chatId);
             logAction(logMsg);
 
             return "You joined chat " + chatId + ". Current chat set. Branches in chat: "
@@ -762,12 +758,12 @@ public class ServerApp {
             }
 
             // Create chat message
-            ChatMessage msg = new ChatMessage(loggedInEmployee.getEmployeeName(), userBranch, messageContent);
+            ChatMessage msg = new ChatMessage(loggedInEmployee.getFullName(), userBranch, messageContent);
             session.addMessage(msg);
 
             // Log the SEND_MSG operation
             String logMsg = String.format("CHAT: Employee '%s' (branch='%s') SENT a message to chatId='%s': \"%s\"",
-                    loggedInEmployee.getEmployeeName(), userBranch, currentChatId, messageContent);
+                    loggedInEmployee.getFullName(), userBranch, currentChatId, messageContent);
             logAction(logMsg);
 
             return "MESSAGE SENT to chat " + currentChatId + ": " + messageContent;
@@ -795,7 +791,7 @@ public class ServerApp {
 
             // Log the SHOW_CHAT action
             String logMsg = String.format("CHAT: Employee '%s' (branch='%s') VIEWED chatId='%s'",
-                    loggedInEmployee.getEmployeeName(), userBranch, currentChatId);
+                    loggedInEmployee.getFullName(), userBranch, currentChatId);
             logAction(logMsg);
 
             StringBuilder sb = new StringBuilder();
@@ -878,49 +874,77 @@ public class ServerApp {
         return new Branch(branchId, branchName);
     }
 
-    private void loadEmployeesFromFile(String filePath) {
-        File f = new File(filePath);
-        if (!f.exists()) {
-            System.out.println("No employees file found at " + filePath + ". Skipping load.");
-            return;
-        }
-        String jsonContent = readWholeFile(f);
-        if (jsonContent == null || jsonContent.trim().isEmpty()) {
-            System.out.println("Employees file is empty. Skipping.");
-            return;
-        }
+//    private void loadEmployeesFromFile(String filePath) {
+//        File f = new File(filePath);
+//        if (!f.exists()) {
+//            System.out.println("No employees file found at " + filePath + ". Skipping load.");
+//            return;
+//        }
+//
+//        String jsonContent = readWholeFile(f);
+//        if (jsonContent == null || jsonContent.trim().isEmpty()) {
+//            System.out.println("Employees file is empty. Skipping.");
+//            return;
+//        }
+//
+//        String trimmed = jsonContent.trim();
+//        if (trimmed.startsWith("["))
+//            trimmed = trimmed.substring(1);
+//        if (trimmed.endsWith("]"))
+//            trimmed = trimmed.substring(0, trimmed.length() - 1);
+//
+//        String[] objectStrings = trimmed.split("\\},\\s*\\{");
+//        for (String objStr : objectStrings) {
+//            String empJson = objStr.trim();
+//            if (!empJson.startsWith("{"))
+//                empJson = "{" + empJson;
+//            if (!empJson.endsWith("}"))
+//                empJson += "}";
+//            Employee e = parseEmployeeFromJson(empJson);
+//            if (e != null) {
+//                authService.register(e, e.getUserName(), e.getPassword());
+//                employeeService.addEmployee(e);
+//            }
+//        }
+//        System.out.println("Loaded employees from file: " + filePath);
+//    }
+private void loadEmployeesFromFile(String filePath) {
+    File f = new File(filePath);
+    if (!f.exists()) return;
 
-        String trimmed = jsonContent.trim();
-        if (trimmed.startsWith("["))
-            trimmed = trimmed.substring(1);
-        if (trimmed.endsWith("]"))
-            trimmed = trimmed.substring(0, trimmed.length() - 1);
+    String jsonContent = readWholeFile(f);
+    if (jsonContent == null || jsonContent.trim().isEmpty()) return;
 
-        String[] objectStrings = trimmed.split("\\},\\s*\\{");
-        for (String objStr : objectStrings) {
-            String empJson = objStr.trim();
-            if (!empJson.startsWith("{"))
-                empJson = "{" + empJson;
-            if (!empJson.endsWith("}"))
-                empJson += "}";
-            Employee e = parseEmployeeFromJson(empJson);
-            if (e != null) {
-                authService.register(e, e.getUserName(), e.getPassword());
-                employeeService.addEmployee(e);
-            }
-        }
-        System.out.println("Loaded employees from file: " + filePath);
+    String trimmed = jsonContent.trim();
+    if (trimmed.startsWith("[")) trimmed = trimmed.substring(1);
+    if (trimmed.endsWith("]")) trimmed = trimmed.substring(0, trimmed.length() - 1);
+
+    String[] objectStrings = trimmed.split("\\},\\s*\\{");
+    for (String objStr : objectStrings) {
+        String empJson = objStr.trim();
+        if (!empJson.startsWith("{")) empJson = "{" + empJson;
+        if (!empJson.endsWith("}")) empJson += "}";
+
+        Employee e = parseEmployeeFromJson(empJson);
+        if (e == null) continue;
+
+        // Add to services
+        employeeService.addEmployee(e);
+        authService.register(e, e.getUserName(), e.getPassword());
     }
+
+    System.out.println("Loaded employees from file: " + filePath);
+}
 
     private Employee parseEmployeeFromJson(String json) {
         String fullName = extractJsonStringValue(json, "fullName");
-        String id = extractJsonStringValue(json, "id");
-        String phone = extractJsonStringValue(json, "phone");
-        String bankAccount = extractJsonStringValue(json, "bankAccount");
-        String branch = extractJsonStringValue(json, "branch");
+        String id = extractJsonStringValue(json, "employeeId");
+        String phone = extractJsonStringValue(json, "phoneNumber");
+        String bankAccount = extractJsonStringValue(json, "accountNumber");
         int empNum = extractJsonIntValue(json, "employeeNumber");
+        String branch = extractJsonStringValue(json, "branchId");
         String roleStr = extractJsonStringValue(json, "role");
-        String username = extractJsonStringValue(json, "username");
+        String username = extractJsonStringValue(json, "userName");
         String password = extractJsonStringValue(json, "password");
 
         if (fullName == null || id == null || roleStr == null) {
@@ -974,12 +998,12 @@ public class ServerApp {
     }
 
     private Product parseProductFromJson(String json) {
-        String id = extractJsonStringValue(json, "id");
-        String name = extractJsonStringValue(json, "name");
+        String id = extractJsonStringValue(json, "productId");
+        String name = extractJsonStringValue(json, "productName");
         String category = extractJsonStringValue(json, "category");
         double price = extractJsonDoubleValue(json, "price");
         int quantity = extractJsonIntValue(json, "quantityInStock");
-        String branch = extractJsonStringValue(json, "branch");
+        String branch = extractJsonStringValue(json, "branchId");
 
         if (id == null || name == null) {
             System.out.println("Invalid product JSON: missing id or name.\n" + json);
@@ -1008,12 +1032,12 @@ public class ServerApp {
 
         String[] objectStrings = trimmed.split("\\},\\s*\\{");
         for (String objStr : objectStrings) {
-            String custJson = objStr.trim();
-            if (!custJson.startsWith("{"))
-                custJson = "{" + custJson;
-            if (!custJson.endsWith("}"))
-                custJson += "}";
-            Customer c = parseCustomerFromJson(custJson);
+            String customerJson = objStr.trim();
+            if (!customerJson.startsWith("{"))
+                customerJson = "{" + customerJson;
+            if (!customerJson.endsWith("}"))
+                customerJson += "}";
+            Customer c = parseCustomerFromJson(customerJson);
             if (c != null) {
                 customerService.addCustomer(c);
             }
@@ -1022,9 +1046,9 @@ public class ServerApp {
     }
 
     private Customer parseCustomerFromJson(String json) {
-        String name = extractJsonStringValue(json, "name");
-        String id = extractJsonStringValue(json, "id");
-        String phone = extractJsonStringValue(json, "phone");
+        String name = extractJsonStringValue(json, "fullName");
+        String id = extractJsonStringValue(json, "customerId");
+        String phone = extractJsonStringValue(json, "phoneNumber");
         String type = extractJsonStringValue(json, "type");
 
         if (name == null || id == null || type == null) {
@@ -1032,22 +1056,22 @@ public class ServerApp {
             return null;
         }
 
-        Customer cust;
+        Customer customer;
         switch (type.toUpperCase()) {
             case "NEW":
-                cust = new NewCustomer(name, id, phone);
+                customer = new NewCustomer(name, id, phone);
                 break;
             case "RETURNING":
-                cust = new ReturningCustomer(name, id, phone);
+                customer = new ReturningCustomer(name, id, phone);
                 break;
             case "VIP":
-                cust = new VIPCustomer(name, id, phone);
+                customer = new VIPCustomer(name, id, phone);
                 break;
             default:
                 System.out.println("Invalid customer type: " + type + " in JSON:\n" + json);
                 return null;
         }
-        return cust;
+        return customer;
     }
 
     /**
@@ -1174,7 +1198,7 @@ public class ServerApp {
         for (int i = 0; i < employees.size(); i++) {
             Employee e = employees.get(i);
             sb.append("  {\n");
-            sb.append("    \"fullName\": \"").append(e.getEmployeeName()).append("\",\n");
+            sb.append("    \"fullName\": \"").append(e.getFullName()).append("\",\n");
             sb.append("    \"id\": \"").append(e.getEmployeeId()).append("\",\n");
             sb.append("    \"phone\": \"").append(e.getPhoneNumber()).append("\",\n");
             sb.append("    \"bankAccount\": \"").append(e.getAccountNumber()).append("\",\n");
@@ -1230,7 +1254,7 @@ public class ServerApp {
     }
 
     public static void main(String[] args) {
-        ServerApp server = new ServerApp(12345);
+        ServerApp server = new ServerApp(3000);
         server.start();
     }
 }

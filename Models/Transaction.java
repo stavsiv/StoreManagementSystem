@@ -98,7 +98,7 @@ public class Transaction {
                 "transactionId='" + transactionId + '\'' +
                 ", customer=" + (customer != null ? customer.getCustomerName() : "null") +
                 ", customerId=" + (customer != null ? customer.getCustomerId() : "null") +
-                ", employee=" + (employee != null ? employee.getEmployeeName() : "null") +
+                ", employee=" + (employee != null ? employee.getFullName() : "null") +
                 ", employeeId=" + (employee != null ? employee.getEmployeeId() : "null") +
                 ", branch=" + (branch != null ? branch.getBranchName() : "null") +
                 ", date=" + date +

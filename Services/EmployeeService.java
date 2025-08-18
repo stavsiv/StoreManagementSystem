@@ -1,7 +1,6 @@
 package Services;
 
 import Models.Employee;
-//import Services.BranchService;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,23 +11,29 @@ public class EmployeeService {
         this.employees = new ArrayList<>();
     }
 
-    public void addEmployee(Employee e) {
+    public boolean addEmployee(Employee e) {
+        // Simple validation
+        if (e.getUserName() == null || e.getUserName().isEmpty()) return false;
+        if (e.getFullName() == null || e.getFullName().isEmpty()) return false;
+        for (Employee emp : employees) {
+            if (emp.getUserName().equals(e.getUserName())) return false;
+            if (emp.getEmployeeId().equals(e.getEmployeeId())) return false;
+        }
         employees.add(e);
+        return true;
     }
 
     public Employee getEmployeeById(String id) {
         for (Employee e : employees) {
-            if (e.getEmployeeId().equals(id)) {
-                return e;
-            }
+            if (e.getEmployeeId().equals(id)) return e;
         }
         return null;
     }
 
-    public boolean updateEmployee(Employee updatedEmployee) {
+    public boolean updateEmployee(Employee updated) {
         for (int i = 0; i < employees.size(); i++) {
-            if (employees.get(i).getEmployeeId().equals(updatedEmployee.getEmployeeId())) {
-                employees.set(i, updatedEmployee);
+            if (employees.get(i).getEmployeeId().equals(updated.getEmployeeId())) {
+                employees.set(i, updated);
                 return true;
             }
         }
@@ -40,17 +45,6 @@ public class EmployeeService {
     }
 
     public List<Employee> listAllEmployees() {
-        // Return a new list to avoid external modification
         return new ArrayList<>(employees);
-    }
-
-    public List<Employee> getEmployeesByBranch(String branchId) {
-        List<Employee> result = new ArrayList<>();
-        for (Employee e : employees) {
-            if (e.getBranchId().equals(branchId)) {
-                result.add(e);
-            }
-        }
-        return result;
     }
 }

@@ -23,8 +23,7 @@ public class Branch {
 
     public void setBranchId(String branchId) { // Validate branch ID format and uniqueness
         if (branchId == null || !branchId.matches("[A-Z]{1,3}\\d{2,3}")) {
-            throw new IllegalArgumentException(
-                    "Branch ID must be 1-3 uppercase letters followed by 2-3 digits. Example: B01, TV001.");
+            throw new IllegalArgumentException("Branch ID must be 1-3 uppercase letters followed by 2-3 digits. Example: B01, TV001.");
         }
         if (existingBranchIds.contains(branchId)) {
             throw new IllegalArgumentException("Branch ID already exists: " + branchId);

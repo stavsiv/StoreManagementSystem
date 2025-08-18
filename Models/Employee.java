@@ -1,38 +1,25 @@
 package Models;
 
-import java.util.HashSet;
-import java.util.Set;
-
 public class Employee {
     private String fullName;
-    private String employeeId; // must be 9 digits
-    private String phoneNumber; // must be 10 digits
+    private String employeeId; // 9 digits
+    private String phoneNumber; // 10 digits
     private String accountNumber;
-    private int employeeNumber; // unique
+    private int employeeNumber;
     private String branchId;
     private Role role;
-
-    public enum Role {
-        SHIFT_MANAGER,
-        CASHIER,
-        SELLER,
-        ADMIN
-    }
-
-    // authentication
-    private String userName; // unique
+    private String userName;
     private String password;
 
-    // Static Sets for Validation
-    private static final Set<Integer> existingEmployeeNumbers = new HashSet<>();
-    private static final Set<String> existingUserNames = new HashSet<>();
-    private static final Set<String> existingEmployeeIds = new HashSet<>();
+    public enum Role {
+        SHIFT_MANAGER, CASHIER, SELLER, ADMIN
+    }
 
-    // Constructor
-    public Employee(String name, String employeeId, String phoneNumber, String accountNumber,
-            int employeeNumber, String branchId, Role role,
-            String userName, String password) {
-        setEmployeeName(name);
+    public Employee() { }
+
+    public Employee(String fullName, String employeeId, String phoneNumber, String accountNumber,
+                    int employeeNumber, String branchId, Role role, String userName, String password) {
+        setFullName(fullName);
         setEmployeeId(employeeId);
         setPhoneNumber(phoneNumber);
         setAccountNumber(accountNumber);
@@ -43,108 +30,60 @@ public class Employee {
         setPassword(password);
     }
 
-    // Getters & Setters with validation
-    public String getEmployeeName() {
-        return fullName;
+    // Getters & Setters
+    public String getFullName() { return fullName; }
+    public void setFullName(String fullName) {
+        if (fullName == null || fullName.isBlank()) throw new IllegalArgumentException("Full name cannot be empty");
+        this.fullName = fullName;
     }
 
-    public void setEmployeeName(String name) {
-        this.fullName = name;
-    }
-
-    public String getEmployeeId() {
-        return employeeId;
-    }
-
+    public String getEmployeeId() { return employeeId; }
     public void setEmployeeId(String employeeId) {
-        if (employeeId == null || !employeeId.matches("\\d{9}")) {
+        if (employeeId == null || !employeeId.matches("\\d{9}"))
             throw new IllegalArgumentException("Employee ID must be exactly 9 digits.");
-        }
-        if (existingEmployeeIds.contains(employeeId)) {
-            throw new IllegalArgumentException("Employee ID already exists: " + employeeId);
-        }
         this.employeeId = employeeId;
-        existingEmployeeIds.add(employeeId);
     }
 
-    public String getPhoneNumber() {
-        return phoneNumber;
-    }
-
+    public String getPhoneNumber() { return phoneNumber; }
     public void setPhoneNumber(String phoneNumber) {
-        if (phoneNumber == null || !phoneNumber.matches("\\d{10}")) {
+        if (phoneNumber == null || !phoneNumber.matches("\\d{10}"))
             throw new IllegalArgumentException("Phone number must be exactly 10 digits.");
-        }
         this.phoneNumber = phoneNumber;
     }
 
-    public String getAccountNumber() {
-        return accountNumber;
-    }
-
+    public String getAccountNumber() { return accountNumber; }
     public void setAccountNumber(String accountNumber) {
         this.accountNumber = accountNumber;
     }
 
-    public String getBranchId() {
-        return branchId;
+    public int getEmployeeNumber() { return employeeNumber; }
+    public void setEmployeeNumber(int employeeNumber) {
+        if (employeeNumber <= 0) throw new IllegalArgumentException("Employee number must be positive");
+        this.employeeNumber = employeeNumber;
     }
 
+    public String getBranchId() { return branchId; }
     public void setBranchId(String branchId) {
         this.branchId = branchId;
     }
 
-    public Role getRole() {
-        return role;
-    }
-
+    public Role getRole() { return role; }
     public void setRole(Role role) {
+        if (role == null) throw new IllegalArgumentException("Role cannot be null");
         this.role = role;
     }
 
-    public int getEmployeeNumber() {
-        return employeeNumber;
-    }
-
-    public void setEmployeeNumber(int employeeNumber) {
-        if (existingEmployeeNumbers.contains(employeeNumber)) {
-            throw new IllegalArgumentException("Employee number already exists: " + employeeNumber);
-        }
-        this.employeeNumber = employeeNumber;
-        existingEmployeeNumbers.add(employeeNumber);
-    }
-
-    public String getUserName() {
-        return userName;
-    }
-
+    public String getUserName() { return userName; }
     public void setUserName(String userName) {
-        if (existingUserNames.contains(userName)) {
-            throw new IllegalArgumentException("Username already exists: " + userName);
-        }
+        if (userName == null || userName.isBlank())
+            throw new IllegalArgumentException("Username cannot be empty");
         this.userName = userName;
-        existingUserNames.add(userName);
     }
 
-    public String getPassword() {
-        return password;
-    }
-
+    public String getPassword() { return password; }
     public void setPassword(String password) {
+        if (password == null || password.length() < 4)
+            throw new IllegalArgumentException("Password must be at least 4 characters");
         this.password = password;
-    }
-
-    @Override
-    public String toString() {
-        return "Employee{" +
-                "name='" + fullName + '\'' +
-                ", employeeId='" + employeeId + '\'' +
-                ", phoneNumber='" + phoneNumber + '\'' +
-                ", accountNumber='" + accountNumber + '\'' +
-                ", employeeNumber=" + employeeNumber +
-                ", branchId='" + branchId + '\'' +
-                ", role=" + role +
-                ", userName='" + userName + '\'' +
-                '}';
     }
 }

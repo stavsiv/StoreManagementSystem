@@ -19,7 +19,7 @@ public class Product {
 
     public Product(String productId, String name, String category,
             double price, int quantityInStock, String branch) {
-        setProductId(productId);
+        setProductId(productId, branch);
         setProductName(name);
         setCategory(category);
         setPrice(price);
@@ -35,16 +35,31 @@ public class Product {
         return productId;
     }
 
-    public void setProductId(String productId) {
+//    public void setProductId(String productId) {
+//        if (productId == null || productId.isEmpty()) {
+//            throw new IllegalArgumentException("Product ID cannot be null or empty.");
+//        }
+//        if (existingProductIds.contains(productId)) {
+//            throw new IllegalArgumentException("Product ID already exists: " + productId);
+//        }
+//        this.productId = productId;
+//        existingProductIds.add(productId);
+//    }
+
+    public void setProductId(String productId, String branchId) {
         if (productId == null || productId.isEmpty()) {
             throw new IllegalArgumentException("Product ID cannot be null or empty.");
         }
-        if (existingProductIds.contains(productId)) {
-            throw new IllegalArgumentException("Product ID already exists: " + productId);
+        // unique
+        String key = productId + "-" + branchId;
+        if (existingProductIds.contains(key)) {
+            throw new IllegalArgumentException("Product ID already exists in this branch: " + key);
         }
         this.productId = productId;
-        existingProductIds.add(productId);
+        existingProductIds.add(key);
     }
+
+
 
     public String getProductName() {
         return productName;

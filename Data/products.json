@@ -1,74 +1,74 @@
 [
     {
-        "id": "P100",
-        "name": "Jeans",
+        "productId": "P100",
+        "productName": "Jeans",
         "category": "Clothing",
         "price": 200.0,
         "quantityInStock": 100,
-        "branch": "B001"
+        "branchId": "B001"
     },
     {
-        "id": "P100",
-        "name": "Jeans",
+        "productId": "P100",
+        "productName": "Jeans",
         "category": "Clothing",
         "price": 200.0,
         "quantityInStock": 100,
-        "branch": "B003"
+        "branchId": "B003"
     },
     {
-        "id": "P200",
-        "name": "Shirt",
+        "productId": "P200",
+        "productName": "Shirt",
         "category": "Clothing",
         "price": 100.0,
         "quantityInStock": 80,
-        "branch": "B001"
+        "branchId": "B001"
     },
     {
-        "id": "P200",
-        "name": "Shirt",
+        "productId": "P200",
+        "productName": "Shirt",
         "category": "Clothing",
         "price": 100.0,
         "quantityInStock": 80,
-        "branch": "B002"
+        "branchId": "B002"
     },
     {
-        "id": "P300",
-        "name": "Hat",
+        "productId": "P300",
+        "productName": "Hat",
         "category": "Accessories",
         "price": 50.0,
         "quantityInStock": 125,
-        "branch": "B002"
+        "branchId": "B002"
     },
     {
-        "id": "P400",
-        "name": "Jacket",
+        "productId": "P400",
+        "productName": "Jacket",
         "category": "Clothing",
         "price": 400.0,
         "quantityInStock": 50,
-        "branch": "B001"
+        "branchId": "B001"
     },
     {
-        "id": "P500",
-        "name": "Sneakers",
+        "productId": "P500",
+        "productName": "Sneakers",
         "category": "Footwear",
         "price": 300.0,
         "quantityInStock": 50,
-        "branch": "B001"
+        "branchId": "B001"
     },
     {
-        "id": "P500",
-        "name": "Sneakers",
+        "productId": "P500",
+        "productName": "Sneakers",
         "category": "Footwear",
         "price": 300.0,
         "quantityInStock": 75,
-        "branch": "B002"
+        "branchId": "B002"
     },
     {
-        "id": "P600",
-        "name": "Sunglasses",
+        "productId": "P600",
+        "productName": "Sunglasses",
         "category": "Accessories",
         "price": 150.0,
         "quantityInStock": 15,
-        "branch": "B001"
+        "branchId": "B001"
     }
 ]
