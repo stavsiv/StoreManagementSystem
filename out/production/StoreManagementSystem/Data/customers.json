@@ -30,12 +30,6 @@
     "type": "New"
   },
   {
-    "fullName": "Selena Gomez",
-    "customerId": "000000005",
-    "phoneNumber": "0506767891",
-    "type": "New"
-  },
-  {
     "fullName": "Naor Didi",
     "customerId": "000000012",
     "phoneNumber": "0532222222",
@@ -51,6 +45,18 @@
     "fullName": "Itay Jo",
     "customerId": "000000010",
     "phoneNumber": "0541112233",
+    "type": "VIP"
+  },
+  {
+    "fullName": "Evyatar Caspi",
+    "customerId": "000000020",
+    "phoneNumber": "0545555555",
+    "type": "Returning"
+  },
+  {
+    "fullName": "Tim Bredford",
+    "customerId": "200893035",
+    "phoneNumber": "0561212121",
     "type": "VIP"
   }
 ]

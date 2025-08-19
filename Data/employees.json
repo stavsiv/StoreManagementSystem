@@ -108,5 +108,16 @@
     "role": "SHIFT_MANAGER",
     "userName": "moshell",
     "password": "239584"
+  },
+  {
+    "fullName": "Osher Cohen",
+    "employeeId": "000000018",
+    "phoneNumber": "0573012922",
+    "accountNumber": "Bank-400",
+    "employeeNumber": 123123,
+    "branchId": "B005",
+    "role": "CASHIER",
+    "userName": "oshi",
+    "password": "223344"
   }
 ]

@@ -40,14 +40,14 @@ import Services.ChatService.ChatMessage;
 import Services.LogsService;
 
 public class ServerApp {
-    private int port;
-    private AuthService authService;
-    private EmployeeService employeeService;
-    private ProductService productService;
-    private SaleService saleService;
-    private CustomerService customerService;
-    private BranchService branchService;
-    private ChatService chatService;
+    private final int port;
+    private final AuthService authService;
+    private final EmployeeService employeeService;
+    private final ProductService productService;
+    private final SaleService saleService;
+    private final CustomerService customerService;
+    private final BranchService branchService;
+    private final ChatService chatService;
 
     // File paths for reading/writing JSON on startup or updates
     private static final String BRANCHES_FILE = "Data/branches.json";
@@ -72,13 +72,13 @@ public class ServerApp {
         this.chatService = new ChatService();
 
         // Load existing data
-        loadBranchesFromFile(BRANCHES_FILE);
-        loadEmployeesFromFile(EMPLOYEES_FILE);
+        loadBranchesFromFile();
+        loadEmployeesFromFile();
         for (Employee e : employeeService.listAllEmployees()) {
             authService.register(e, e.getUserName(), e.getPassword());
         }
-        loadProductsFromFile(PRODUCTS_FILE);
-        loadCustomersFromFile(CUSTOMERS_FILE);
+        loadProductsFromFile();
+        loadCustomersFromFile();
 
         System.out.println("Server initialized successfully. Data loaded from JSON files.");
     }
@@ -95,6 +95,7 @@ public class ServerApp {
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
                 new Thread(new ClientHandler(clientSocket)).start();
             }
+
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -104,7 +105,7 @@ public class ServerApp {
      * Inner class to handle client sessions.
      */
     private class ClientHandler implements Runnable {
-        private Socket socket;
+        private final Socket socket;
         private Employee loggedInEmployee;
         private String currentUsername;
 
@@ -149,8 +150,13 @@ public class ServerApp {
         private void logAction(String action) {
             File logsDir = new File("logs");
             if (!logsDir.exists()) {
-                logsDir.mkdirs();
+                boolean dirCreated = logsDir.mkdirs();
+                if (!dirCreated) {
+                    System.err.println("ERROR: Failed to create logs directory.");
+                    return;
+                }
             }
+
             String timestamp = LocalDateTime.now()
                     .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
@@ -159,7 +165,6 @@ public class ServerApp {
 
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
                 writer.write(finalLine + "\n");
-                writer.flush();
             } catch (IOException e) {
                 System.err.println("ERROR: Could not write to actions.log - " + e.getMessage());
             }
@@ -352,7 +357,7 @@ public class ServerApp {
             int currentIndex = 1;
             StringBuilder nameBuilder = new StringBuilder();
             while (currentIndex < parts.length && !parts[currentIndex].matches("\\d+")) {
-                if (nameBuilder.length() > 0) nameBuilder.append(" ");
+                if (!nameBuilder.isEmpty()) nameBuilder.append(" ");
                 nameBuilder.append(parts[currentIndex]);
                 currentIndex++;
             }
@@ -376,7 +381,7 @@ public class ServerApp {
                 }
 
                 authService.register(newEmp, newUsername, newPassword);
-                saveEmployeesToFile(EMPLOYEES_FILE);
+                saveEmployeesToFile();
 
                 return String.format("Employee has been successfully added to the system: Name: %s,Id: %s, Branch: %s, Role: %s",
                         newEmp.getFullName(), newEmp.getEmployeeId(), newEmp.getBranchId(), newEmp.getRole());
@@ -419,7 +424,7 @@ public class ServerApp {
             }
 
             double finalPrice = saleService.sellProduct(customer, productId, loggedInEmployee.getBranchId(), qty);
-            saveProductsToFile(PRODUCTS_FILE);
+            saveProductsToFile();
 
             // Log the SELL
             logAction(String.format(
@@ -470,7 +475,7 @@ public class ServerApp {
     Product existing = productService.getProductByIdAndBranch(productId, branch);
     if (existing != null) {
         existing.setQuantityInStock(existing.getQuantityInStock() + quantity);
-        saveProductsToFile(PRODUCTS_FILE);
+        saveProductsToFile();
 
         logAction(String.format("PURCHASE: Employee '%s' in branch '%s' added %d to product '%s'",
                 loggedInEmployee.getFullName(), branch, quantity, productId));
@@ -481,7 +486,7 @@ public class ServerApp {
     } else {
         Product newProduct = new Product(productId, productName, category, price, quantity, branch);
         productService.addOrUpdateProduct(newProduct);
-        saveProductsToFile(PRODUCTS_FILE);
+        saveProductsToFile();
 
         logAction(String.format("PURCHASE: Employee '%s' in branch '%s' created new product '%s' (id=%s) qty=%d",
                 loggedInEmployee.getFullName(), branch, productName, productId, quantity));
@@ -502,7 +507,7 @@ public class ServerApp {
                 int currentIndex = 1;
                 StringBuilder nameBuilder = new StringBuilder();
                 while (currentIndex < parts.length && !parts[currentIndex].matches("\\d{9}")) {
-                    if (nameBuilder.length() > 0) {
+                    if (!nameBuilder.isEmpty()) {
                         nameBuilder.append(" ");
                     }
                     nameBuilder.append(parts[currentIndex]);
@@ -532,7 +537,7 @@ public class ServerApp {
 
                 customerService.addCustomer(customer);
 
-                saveCustomersToFile(CUSTOMERS_FILE);
+                saveCustomersToFile();
 
                 String logMsg = String.format(
                         "Employee '%s' (Role=%s) added new customer '%s' (ID=%s)",
@@ -625,7 +630,10 @@ public class ServerApp {
             }
             File logsDir = new File("logs");
             if (!logsDir.exists()) {
-                logsDir.mkdirs();
+                boolean created = logsDir.mkdirs();
+                if (!created) {
+                    return "ERROR: Failed to create logs directory.";
+                }
             }
 
             Map<String, List<SaleRecord>> salesByBranch = new HashMap<>();
@@ -854,10 +862,10 @@ public class ServerApp {
     }
 
     // FILE-LOADING METHODS
-    private void loadBranchesFromFile(String filePath) {
-        File f = new File(filePath);
+    private void loadBranchesFromFile() {
+        File f = new File(ServerApp.BRANCHES_FILE);
         if (!f.exists()) {
-            System.out.println("No branches file found at " + filePath + ". Skipping branch load.");
+            System.out.println("No branches file found at " + ServerApp.BRANCHES_FILE + ". Skipping branch load.");
             return;
         }
         String jsonContent = readWholeFile(f);
@@ -871,7 +879,7 @@ public class ServerApp {
         if (trimmed.endsWith("]"))
             trimmed = trimmed.substring(0, trimmed.length() - 1);
 
-        String[] objects = trimmed.split("\\},\\s*\\{");
+        String[] objects = trimmed.split("},\\s*\\{");
         for (String objStr : objects) {
             String branchJson = objStr.trim();
             if (!branchJson.startsWith("{"))
@@ -883,7 +891,7 @@ public class ServerApp {
                 branchService.addBranch(b);
             }
         }
-        System.out.println("Loaded branches from file: " + filePath);
+        System.out.println("Loaded branches from file: " + ServerApp.BRANCHES_FILE);
     }
 
     private Branch parseBranchFromJson(String json) {
@@ -896,8 +904,8 @@ public class ServerApp {
         return new Branch(branchId, branchName);
     }
 
-private void loadEmployeesFromFile(String filePath) {
-    File f = new File(filePath);
+private void loadEmployeesFromFile() {
+    File f = new File(ServerApp.EMPLOYEES_FILE);
     if (!f.exists()) return;
 
     String jsonContent = readWholeFile(f);
@@ -907,7 +915,7 @@ private void loadEmployeesFromFile(String filePath) {
     if (trimmed.startsWith("[")) trimmed = trimmed.substring(1);
     if (trimmed.endsWith("]")) trimmed = trimmed.substring(0, trimmed.length() - 1);
 
-    String[] objectStrings = trimmed.split("\\},\\s*\\{");
+    String[] objectStrings = trimmed.split("},\\s*\\{");
     for (String objStr : objectStrings) {
         String empJson = objStr.trim();
         if (!empJson.startsWith("{")) empJson = "{" + empJson;
@@ -921,7 +929,7 @@ private void loadEmployeesFromFile(String filePath) {
         authService.register(e, e.getUserName(), e.getPassword());
     }
 
-    System.out.println("Loaded employees from file: " + filePath);
+    System.out.println("Loaded employees from file: " + ServerApp.EMPLOYEES_FILE);
 }
 
     private Employee parseEmployeeFromJson(String json) {
@@ -947,15 +955,14 @@ private void loadEmployeesFromFile(String filePath) {
             System.out.println("Invalid role: " + roleStr);
             return null;
         }
-        Employee newEmp = new Employee(fullName, employeeId, phoneNumber, accountNumber, employeeNumber, branchId, role, userName, password);
-        return newEmp;
+        return new Employee(fullName, employeeId, phoneNumber, accountNumber, employeeNumber, branchId, role, userName, password);
     }
 
 
-    private void loadProductsFromFile(String filePath) {
-        File f = new File(filePath);
+    private void loadProductsFromFile() {
+        File f = new File(ServerApp.PRODUCTS_FILE);
         if (!f.exists()) {
-            System.out.println("No products file found at " + filePath + ". Skipping load.");
+            System.out.println("No products file found at " + ServerApp.PRODUCTS_FILE + ". Skipping load.");
             return;
         }
         String jsonContent = readWholeFile(f);
@@ -970,7 +977,7 @@ private void loadEmployeesFromFile(String filePath) {
         if (trimmed.endsWith("]"))
             trimmed = trimmed.substring(0, trimmed.length() - 1);
 
-        String[] objectStrings = trimmed.split("\\},\\s*\\{");
+        String[] objectStrings = trimmed.split("},\\s*\\{");
         for (String objStr : objectStrings) {
             String prodJson = objStr.trim();
             if (!prodJson.startsWith("{"))
@@ -982,14 +989,14 @@ private void loadEmployeesFromFile(String filePath) {
                 productService.addOrUpdateProduct(p);
             }
         }
-        System.out.println("Loaded products from file: " + filePath);
+        System.out.println("Loaded products from file: " + ServerApp.PRODUCTS_FILE);
     }
 
     private Product parseProductFromJson(String json) {
         String id = extractJsonStringValue(json, "productId");
         String name = extractJsonStringValue(json, "productName");
         String category = extractJsonStringValue(json, "category");
-        double price = extractJsonDoubleValue(json, "price");
+        double price = extractJsonDoubleValue(json);
         int quantity = extractJsonIntValue(json, "quantityInStock");
         String branch = extractJsonStringValue(json, "branchId");
 
@@ -1000,10 +1007,10 @@ private void loadEmployeesFromFile(String filePath) {
         return new Product(id, name, category, price, quantity, branch);
     }
 
-    private void loadCustomersFromFile(String filePath) {
-        File f = new File(filePath);
+    private void loadCustomersFromFile() {
+        File f = new File(ServerApp.CUSTOMERS_FILE);
         if (!f.exists()) {
-            System.out.println("No customers file found at " + filePath + ". Skipping customer load.");
+            System.out.println("No customers file found at " + ServerApp.CUSTOMERS_FILE + ". Skipping customer load.");
             return;
         }
         String jsonContent = readWholeFile(f);
@@ -1018,7 +1025,7 @@ private void loadEmployeesFromFile(String filePath) {
         if (trimmed.endsWith("]"))
             trimmed = trimmed.substring(0, trimmed.length() - 1);
 
-        String[] objectStrings = trimmed.split("\\},\\s*\\{");
+        String[] objectStrings = trimmed.split("},\\s*\\{");
         for (String objStr : objectStrings) {
             String customerJson = objStr.trim();
             if (!customerJson.startsWith("{"))
@@ -1030,7 +1037,7 @@ private void loadEmployeesFromFile(String filePath) {
                 customerService.addCustomer(c);
             }
         }
-        System.out.println("Loaded customers from file: " + filePath);
+        System.out.println("Loaded customers from file: " + ServerApp.CUSTOMERS_FILE);
     }
 
     private Customer parseCustomerFromJson(String json) {
@@ -1112,8 +1119,8 @@ private void loadEmployeesFromFile(String filePath) {
     /**
      * Extracts a double value from Json.
      */
-    private double extractJsonDoubleValue(String json, String key) {
-        String regex = "\"" + key + "\"\\s*:\\s*([\\d.]+)";
+    private double extractJsonDoubleValue(String json) {
+        String regex = "\"" + "price" + "\"\\s*:\\s*([\\d.]+)";
         Pattern pattern = Pattern.compile(regex);
         Matcher matcher = pattern.matcher(json);
         if (matcher.find()) {
@@ -1127,16 +1134,16 @@ private void loadEmployeesFromFile(String filePath) {
     }
 
     // SAVE PRODUCTS TO FILE
-    private void saveProductsToFile(String filePath) {
+    private void saveProductsToFile() {
         List<Product> allProducts = productService.getAllProducts();
         String jsonArray = buildProductsJson(allProducts);
 
-        try (FileWriter fw = new FileWriter(filePath)) {
+        try (FileWriter fw = new FileWriter(ServerApp.PRODUCTS_FILE)) {
             fw.write(jsonArray);
-            System.out.println("Products saved to file: " + filePath);
+            System.out.println("Products saved to file: " + ServerApp.PRODUCTS_FILE);
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("ERROR: Could not save products to file " + filePath);
+            System.out.println("ERROR: Could not save products to file " + ServerApp.PRODUCTS_FILE);
         }
     }
 
@@ -1163,16 +1170,16 @@ private void loadEmployeesFromFile(String filePath) {
     }
 
     // SAVE EMPLOYEES TO FILE
-    private void saveEmployeesToFile(String filePath) {
+    private void saveEmployeesToFile() {
         List<Employee> allEmployees = employeeService.listAllEmployees();
         String jsonArray = buildEmployeesJson(allEmployees);
 
-        try (FileWriter fw = new FileWriter(filePath)) {
+        try (FileWriter fw = new FileWriter(ServerApp.EMPLOYEES_FILE)) {
             fw.write(jsonArray);
-            System.out.println("Employees saved to file: " + filePath);
+            System.out.println("Employees saved to file: " + ServerApp.EMPLOYEES_FILE);
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("ERROR: Could not save employees to file " + filePath);
+            System.out.println("ERROR: Could not save employees to file " + ServerApp.EMPLOYEES_FILE);
         }
     }
 
@@ -1202,16 +1209,16 @@ private void loadEmployeesFromFile(String filePath) {
     }
 
     // SAVE CUSTOMERS TO FILE
-    private void saveCustomersToFile(String filePath) {
+    private void saveCustomersToFile() {
         List<Customer> allCustomers = customerService.listAllCustomers();
         String jsonArray = buildCustomersJson(allCustomers);
 
-        try (FileWriter fw = new FileWriter(filePath)) {
+        try (FileWriter fw = new FileWriter(ServerApp.CUSTOMERS_FILE)) {
             fw.write(jsonArray);
-            System.out.println("Customers saved to file: " + filePath);
+            System.out.println("Customers saved to file: " + ServerApp.CUSTOMERS_FILE);
         } catch (IOException e) {
             e.printStackTrace();
-            System.out.println("ERROR: Could not save customers to file " + filePath);
+            System.out.println("ERROR: Could not save customers to file " + ServerApp.CUSTOMERS_FILE);
         }
     }
 

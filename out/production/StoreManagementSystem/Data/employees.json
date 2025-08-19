@@ -88,17 +88,6 @@
     "password": "67877"
   },
   {
-    "fullName": "lidor test",
-    "employeeId": "000000005",
-    "phoneNumber": "0561111111",
-    "accountNumber": "Bank-303",
-    "employeeNumber": 2007,
-    "branchId": "B003",
-    "role": "SELLER",
-    "userName": "testwin",
-    "password": "22442423"
-  },
-  {
     "fullName": "Juliet Snow",
     "employeeId": "102030444",
     "phoneNumber": "0552222221",
@@ -108,5 +97,16 @@
     "role": "SHIFT_MANAGER",
     "userName": "julis",
     "password": "pass123"
+  },
+  {
+    "fullName": "Moshe Shamir",
+    "employeeId": "109737578",
+    "phoneNumber": "0529155234",
+    "accountNumber": "Bank-312",
+    "employeeNumber": 212443,
+    "branchId": "B004",
+    "role": "SHIFT_MANAGER",
+    "userName": "moshell",
+    "password": "239584"
   }
 ]
