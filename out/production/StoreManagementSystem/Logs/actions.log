@@ -1,0 +1,32 @@
+[2025-01-26 23:17:36] SELL: Employee 'Bob Manager' in branch 'B001' sold productId='P100' (qty=5) to customer 'John Doe'
+[2025-01-26 23:22:11] BUY: Employee 'Bob Manager' in branch 'B001' purchased more of productId='P300' (qty=25)
+[2025-01-27 13:01:51] CHAT: Employee 'Bob Manager' (branch='B001') STARTED a chat with branch='B002'; chatId='CHAT-1000'
+[2025-01-27 13:02:08] CHAT: Employee 'shani' (branch='B002') JOINED chatId='CHAT-1000'
+[2025-01-27 13:02:37] CHAT: Employee 'shani' (branch='B002') SENT a message to chatId='CHAT-1000': "Hello ronel"
+[2025-01-27 13:04:48] CHAT: Employee 'Alice Admin' (branch='HQ') JOINED chatId='CHAT-1000'
+[2025-01-27 17:26:14] CHAT: Employee 'Bob Manager' (branch='B001') STARTED a chat with branch='fiziboobahlah'; chatId='CHAT-1000'
+[2025-01-27 17:27:03] CHAT: Employee 'Cathy Cashier' (branch='B002') JOINED chatId='CHAT-1000'
+[2025-01-27 18:25:26] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:40:37] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:45:50] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:48:06] SELL: Employee 'Cathy Cashier' in branch 'B002' sold productId='P100' (qty=5) to customer 'ron'
+[2025-01-27 18:50:05] SELL: Employee 'Cathy Cashier' in branch 'B002' sold productId='P300' (qty=6) to customer 'ron'
+[2025-01-27 18:50:50] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:53:35] SELL: Employee 'Bob Manager' in branch 'B001' sold productId='P100' (qty=6) to customer 'ron'
+[2025-01-27 18:54:01] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-01-27 18:55:00] SELL: Employee 'Bob Manager' in branch 'B001' sold productId='P100' (qty=7) to customer 'ron'
+[2025-01-27 18:55:22] ADMIN 'Alice Admin' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-08-19 07:01:32] Employee 'Stav Sivilya' (Role=ADMIN) added new customer 'Selena Gomez' (ID=000000004)
+[2025-08-19 07:12:02] Employee 'Stav Sivilya' (Role=ADMIN) added new customer 'Selena Gomez' (ID=000000005)
+[2025-08-19 11:19:12] Employee 'Lidor Stamker' (Role=SELLER) added new customer 'Naor Didi' (ID=000000012)
+[2025-08-19 11:20:16] SELL: Employee 'Lidor Stamker' in branch 'B003' sold productId='P100' (qty=10) to customer 'Naor Didi'
+[2025-08-19 11:35:08] Employee 'Adi Siv' (Role=CASHIER) added new customer 'Or Tal' (ID=000000019)
+[2025-08-19 12:04:19] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P100' (qty=20) to customer 'Or Tal'
+[2025-08-19 12:34:07] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P100' (qty=10) to customer 'Itay Johnson'
+[2025-08-19 12:39:24] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P100' (qty=10) to customer 'Itay Johnson'
+[2025-08-19 12:53:34] PURCHASE: Employee 'Adi Siv' in branch 'B003' created new product 'Jacket' (id=P400) qty=75
+[2025-08-19 12:57:19] Employee 'Adi Siv' (Role=CASHIER) added new customer 'Itay Jo' (ID=000000010)
+[2025-08-19 12:58:28] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P400' (qty=5) to customer 'Itay Jo'
+[2025-08-19 13:00:07] PURCHASE: Employee 'Adi Siv' in branch 'B003' added 10 to product 'P400'
+[2025-08-19 13:00:35] PURCHASE: Employee 'Adi Siv' in branch 'B003' added 10 to product 'P400'
+[2025-08-19 13:01:40] PURCHASE: Employee 'Adi Siv' in branch 'B003' created new product 'Earings' (id=P700) qty=30

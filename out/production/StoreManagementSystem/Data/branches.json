@@ -1,0 +1,34 @@
+[
+    {
+        "branchId": "HQ01",
+        "branchName": "Headquarters"
+    },
+    {
+        "branchId": "B001",
+        "branchName": "Rehovot Branch"
+    },
+    {
+        "branchId": "B002",
+        "branchName": "Rishon Lezion Branch"
+    },
+    {
+        "branchId": "B003",
+        "branchName": "Ramla Branch"
+    },
+    {
+        "branchId": "B004",
+        "branchName": "Tel Aviv Branch"
+    },
+    {
+        "branchId": "B005",
+        "branchName": "Jerusalem Branch"
+    },
+    {
+        "branchId": "B006",
+        "branchName": "Haifa Branch"
+    },
+    {
+        "branchId": "B007",
+        "branchName": "Ashdod Branch"
+    }
+]
