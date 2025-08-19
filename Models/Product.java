@@ -14,6 +14,7 @@ public class Product {
      * but filter by 'branch' when needed.
      */
 
+    // Constructor
     public Product(String productId, String name, String category,
             double price, int quantityInStock, String branch) {
         setProductId(productId);
@@ -28,7 +29,7 @@ public class Product {
     public String getProductId() { return productId; }
     public void setProductId(String productId) {
         if (productId == null || productId.isEmpty()) {
-            throw new IllegalArgumentException("Product Id cannot be null or empty.");
+            throw new IllegalArgumentException("Product ID cannot be null or empty.");
         }
         this.productId = productId;
     }

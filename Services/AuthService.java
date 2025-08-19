@@ -6,22 +6,26 @@ import java.util.Map;
 
 public class AuthService {
 
+    /**
+     * This class handles authentication processes, including verifying user credentials and managing login operations.
+     */
+
     private Map<String, Employee> users;
     private Map<String, Boolean> loggedInMap;
 
+    // Constructor
     public AuthService() {
         this.users = new HashMap<>();
         this.loggedInMap = new HashMap<>();
     }
 
-    public void register(Employee emp, String username, String password) {
+    public void register(Employee employee, String username, String password) {
         if (users.containsKey(username)) {
-            //System.out.println("Skipping duplicate username: " + username);
             return;
         }
-        emp.setUserName(username);
-        emp.setPassword(password);
-        users.put(username, emp);
+        employee.setUserName(username);
+        employee.setPassword(password);
+        users.put(username, employee);
         loggedInMap.put(username, false);
     }
 
@@ -31,8 +35,8 @@ public class AuthService {
             return null;
         }
 
-        Employee emp = users.get(username);
-        if (!emp.getPassword().equals(password)) {
+        Employee employee = users.get(username);
+        if (!employee.getPassword().equals(password)) {
             System.out.println("Incorrect password!");
             return null;
         }
@@ -43,8 +47,8 @@ public class AuthService {
         }
 
         loggedInMap.put(username, true);
-        System.out.println("Login successful! Welcome, " + emp.getFullName());
-        return emp;
+        System.out.println("Login successful! Welcome, " + employee.getFullName());
+        return employee;
     }
 
     public void logout(String username) {

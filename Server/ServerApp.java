@@ -339,11 +339,7 @@ public class ServerApp {
             return sb.toString();
         }
 
-
-        // ---------------------------------------------------
         // ADD_EMPLOYEE command (with logging)
-        // ---------------------------------------------------
-
         private String addEmployeeCommand(String[] parts) {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can add employees.";
@@ -393,45 +389,7 @@ public class ServerApp {
             }
         }
 
-        // ---------------------------------------------------
-        // SELL command (with logging)
-        // ---------------------------------------------------
-        // Employee sells product to a customer
-//        private String sellCommand(String[] parts) {
-//            if (loggedInEmployee.getRole() == Role.ADMIN) {
-//                return "ERROR: ADMIN cannot SELL products.";
-//            }
-//            if (parts.length < 4) {
-//                return "Usage: SELL <productId> <quantity> <customerId>";
-//            }
-//            String productId = parts[1];
-//            int qty;
-//            try {
-//                qty = Integer.parseInt(parts[2]);
-//            } catch (NumberFormatException e) {
-//                return "ERROR: quantity must be an integer.";
-//            }
-//            String customerId = parts[3];
-//            Customer customer = customerService.getCustomerById(customerId);
-//            if (customer == null) {
-//                return "ERROR: No customer found with ID " + customerId + ". Please ADD_CUSTOMER first.";
-//            }
-//            double finalPrice = saleService.purchaseProduct(customer, productId, qty);
-//            if (finalPrice < 0) {
-//                return "ERROR: Unable to sell (invalid product or insufficient stock).";
-//            }
-//
-//            // Log the SELL
-//            String logMsg = String.format(
-//                    "SELL: Employee '%s' in branch '%s' sold productId='%s' (qty=%d) to customer '%s'",
-//                    loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(),
-//                    productId, qty, customer.getCustomerName());
-//            logAction(logMsg);
-//
-//            return "SUCCESS: Sold " + qty + " of " + productId + " to " + customerId
-//                    + " (" + customer.getCustomerName() + "). Final price: " + finalPrice;
-//        }
-
+        // SELL command (with logging) (Employee sells product to a customer)
         private String sellProductCommand(String[] parts) {
             if (loggedInEmployee.getRole() == Role.ADMIN) {
                 return "ERROR: ADMIN cannot sell products.";
@@ -476,65 +434,9 @@ public class ServerApp {
 
         }
 
-        // ---------------------------------------------------
-        // PURCHASE_PRODUCT command (with logging)
-        // ---------------------------------------------------
-        //Employee buys new stock from supplier or adds a new product to the branch.
 
-//        private String purchaseProductCommand(String[] parts) {
-//            if (loggedInEmployee.getRole() == Role.ADMIN) {
-//                return "ERROR: ADMIN cannot purchase products.";
-//            }
-//            if (parts.length < 7) {
-//                return "Usage: PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>";
-//            }
-//
-//            String productId = parts[1];
-//            String productName = parts[2];
-//            String category = parts[3];
-//            double price;
-//            int quantity;
-//            String branch = parts[6];
-//
-//            try {
-//                price = Double.parseDouble(parts[4]);
-//            } catch (NumberFormatException e) {
-//                return "ERROR: price must be a valid number.";
-//            }
-//
-//            try {
-//                quantity = Integer.parseInt(parts[5]);
-//            } catch (NumberFormatException e) {
-//                return "ERROR: quantity must be an integer.";
-//            }
-//
-//            if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch)) {
-//                return "ERROR: You can't purchase products for a different branch.";
-//            }
-//
-//            Product existing = productService.getProductByIdAndBranch(productId, branch);
-//            if (existing != null) {
-//                existing.setQuantityInStock(existing.getQuantityInStock() + quantity);
-//                saveProductsToFile(PRODUCTS_FILE);
-//
-//                logAction(String.format("PURCHASE: Employee '%s' in branch '%s' added %d to product '%s'",
-//                        loggedInEmployee.getFullName(), branch, quantity, productId));
-//
-//                return "Success!: Increased stock of product [" + productId + "] by " + quantity +
-//                        ". New total in stock = " + existing.getQuantityInStock();
-//
-//            } else {
-//                Product newProduct = new Product(productId, productName, category, price, quantity, branch);
-//                productService.addOrUpdateProduct(newProduct);
-//                saveProductsToFile(PRODUCTS_FILE);
-//
-//                logAction(String.format("PURCHASE: Employee '%s' in branch '%s' created new product '%s' (id=%s) qty=%d",
-//                        loggedInEmployee.getFullName(), branch, productName, productId, quantity));
-//
-//                return "Product has been successfully created with ID: " + productId + " and stock: " + quantity + ".";
-//            }
-//        }
-private String purchaseProductCommand(String[] parts) {
+        // PURCHASE_PRODUCT command (with logging) - (Employee buys new stock from supplier or adds a new product to the branch.)
+        private String purchaseProductCommand(String[] parts) {
     if (loggedInEmployee.getRole() == Role.ADMIN) {
         return "ERROR: ADMIN cannot purchase products.";
     }
@@ -590,10 +492,7 @@ private String purchaseProductCommand(String[] parts) {
 }
 
 
-        // ---------------------------------------------------
         // ADD_CUSTOMER command (with logging)
-        // ---------------------------------------------------
-
         private String addCustomerCommand(String[] parts) {
             if (parts.length < 5) {
                 return "Usage: ADD_CUSTOMER <fullName> <id> <phone> <type> (NEW, RETURNING, VIP)";
@@ -653,12 +552,7 @@ private String purchaseProductCommand(String[] parts) {
             }
         }
 
-
-
-        // ---------------------------------------------------
         // showEmployees, showProducts, showCustomers
-        // ---------------------------------------------------
-
         private String showEmployees() {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can view all employees.";
@@ -687,7 +581,6 @@ private String purchaseProductCommand(String[] parts) {
             return sb.toString();
         }
 
-
         private String showProducts() {
             List<Product> productsToShow;
 
@@ -701,8 +594,6 @@ private String purchaseProductCommand(String[] parts) {
 
             return productService.formatProductList(productsToShow);
         }
-
-
 
         private String showCustomers() {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
@@ -723,9 +614,7 @@ private String purchaseProductCommand(String[] parts) {
             return sb.toString();
         }
 
-        // ---------------------------------------------------
         // SAVE_SALES, buildJsonFromSalesMap, viewSalesLogs
-        // ---------------------------------------------------
         private String saveSalesLogs() {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can save sales logs.";
@@ -823,9 +712,7 @@ private String purchaseProductCommand(String[] parts) {
             return sb.toString();
         }
 
-        // ---------------------------------------------------
         // Chat commands (with NEW logging in each)
-        // ---------------------------------------------------
         private String startChatCommand(String[] parts) {
             if (parts.length < 2) {
                 return "Usage: START_CHAT <branchId>";
@@ -964,14 +851,9 @@ private String purchaseProductCommand(String[] parts) {
             return sb.toString();
         }
 
-        // ... optional method: ACCESS_CHAT <chatId> (ADMIN only) ...
-        // (not fully used in your code, but you might implement similarly)
-
     }
 
-    // ===========================
     // FILE-LOADING METHODS
-    // ===========================
     private void loadBranchesFromFile(String filePath) {
         File f = new File(filePath);
         if (!f.exists()) {
@@ -1244,9 +1126,7 @@ private void loadEmployeesFromFile(String filePath) {
         return 0.0;
     }
 
-    // ===========================
     // SAVE PRODUCTS TO FILE
-    // ===========================
     private void saveProductsToFile(String filePath) {
         List<Product> allProducts = productService.getAllProducts();
         String jsonArray = buildProductsJson(allProducts);
@@ -1282,9 +1162,7 @@ private void loadEmployeesFromFile(String filePath) {
         return sb.toString();
     }
 
-    // ===========================
     // SAVE EMPLOYEES TO FILE
-    // ===========================
     private void saveEmployeesToFile(String filePath) {
         List<Employee> allEmployees = employeeService.listAllEmployees();
         String jsonArray = buildEmployeesJson(allEmployees);
@@ -1323,9 +1201,7 @@ private void loadEmployeesFromFile(String filePath) {
         return sb.toString();
     }
 
-    // ===========================
     // SAVE CUSTOMERS TO FILE
-    // ===========================
     private void saveCustomersToFile(String filePath) {
         List<Customer> allCustomers = customerService.listAllCustomers();
         String jsonArray = buildCustomersJson(allCustomers);

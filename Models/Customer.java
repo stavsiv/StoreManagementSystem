@@ -17,7 +17,7 @@ public abstract class Customer {
         setPhoneNumber(phoneNumber);
     }
 
-    // Getters and Setters with Validation
+    // Getters & Setters
     public String getCustomerName() {
         return fullName;
     }
@@ -52,6 +52,7 @@ public abstract class Customer {
         this.phoneNumber = phone;
     }
 
+    // Abstract Methods
     public abstract String getCustomerType();
 
     public abstract double calculateFinalPrice(double totalPrice);

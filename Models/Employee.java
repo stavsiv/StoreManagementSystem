@@ -11,9 +11,10 @@ public class Employee {
     private String userName;
     private String password;
 
-
+    // Empty Constructor
     public Employee() { }
 
+    // Constructor
     public Employee(String fullName, String employeeId, String phoneNumber, String accountNumber,
                     int employeeNumber, String branchId, Role role, String userName, String password) {
         setFullName(fullName);

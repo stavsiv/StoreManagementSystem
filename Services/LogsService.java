@@ -8,6 +8,7 @@ import java.util.zip.ZipOutputStream;
  * Service class to combine two JSON files (sales_by_branch.json
  * and sales_by_productType.json) into a single Word document (.docx).
  */
+
 public class LogsService {
 
     /**

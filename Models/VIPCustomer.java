@@ -2,7 +2,7 @@ package Models;
 
 public class VIPCustomer extends Customer {
 
-    private static final double DISCOUNT_RATE = 0.30;
+    private static final double DISCOUNT_RATE = 0.30; ////30% discount
 
     // Constructor
     public VIPCustomer(String fullName, String customerId, String phoneNumber) {
