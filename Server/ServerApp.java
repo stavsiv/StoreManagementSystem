@@ -191,7 +191,7 @@ public class ServerApp {
         }
 
         private boolean handleCommands(BufferedReader in, PrintWriter out) throws IOException {
-            out.println("Type 'MENU' to see available commands, or 'EXIT' to exit.");
+            out.println("Type 'Menu' to see available commands, or 'Exit' to exit.");
 
             String line;
             while ((line = in.readLine()) != null) {
@@ -234,9 +234,9 @@ public class ServerApp {
                 case "SHOW_PRODUCTS":
                     return showProducts();
                 case "SELL":
-                    return sellCommand(parts);
-                case "BUY_PRODUCT":
-                    return buyProductCommand(parts);
+                    return sellProductCommand(parts);
+                case "PURCHASE_PRODUCT":
+                    return purchaseProductCommand(parts);
                 case "SAVE_SALES":
                     return saveSalesLogs();
                 case "VIEW_SALES_LOGS":
@@ -303,7 +303,7 @@ public class ServerApp {
                     loggedInEmployee.getFullName(), outputDoc);
             logAction(logMsg);
 
-            return "SUCCESS: logs converted to " + outputDoc;
+            return "SUCCESS!: logs converted to " + outputDoc;
         }
 
         private String showMenu() {
@@ -323,7 +323,7 @@ public class ServerApp {
                 sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
                 sb.append("SHOW_PRODUCTS - display products in your branch\n");
                 sb.append("SELL <productId> <quantity> <customerId>\n");
-                sb.append("BUY_PRODUCT <productId> <quantity> <productName> <category> <price> <branch>\n");
+                sb.append("PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>\n");
             }
 
             sb.append("LOGOUT - logout\n");
@@ -343,50 +343,6 @@ public class ServerApp {
         // ---------------------------------------------------
         // ADD_EMPLOYEE command (with logging)
         // ---------------------------------------------------
-//        private String addEmployeeCommand(String[] parts) {
-//            if (loggedInEmployee.getRole() != Role.ADMIN) {
-//                return "ERROR: Only ADMIN can add employees.";
-//            }
-//
-//            if (parts.length < 10) {
-//                return "Usage: ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>";
-//            }
-//
-//            int currentIndex = 1;
-//            StringBuilder nameBuilder = new StringBuilder();
-//
-//            while (currentIndex < parts.length && !parts[currentIndex].matches("\\d+")) {
-//                if (nameBuilder.length() > 0) {
-//                    nameBuilder.append(" ");
-//                }
-//                nameBuilder.append(parts[currentIndex]);
-//                currentIndex++;
-//            }
-//
-//            String fullName = nameBuilder.toString();
-//            String id = parts[currentIndex++];
-//            String phone = parts[currentIndex++];
-//            String bankAcc = parts[currentIndex++];
-//            String branch = parts[currentIndex++];
-//            int empNum = Integer.parseInt(parts[currentIndex++]);
-//            String roleStr = parts[currentIndex++].toUpperCase();
-//            Role newEmpRole = Role.valueOf(roleStr);
-//            String newUsername = parts[currentIndex++];
-//            String newPassword = parts[currentIndex++];
-//
-//            Employee newEmp = new Employee(fullName, id, phone, bankAcc, empNum, branch, newEmpRole, newUsername, newPassword);
-//
-//            boolean added = employeeService.addEmployee(newEmp);
-//            if (!added) {
-//                return "ERROR: Employee with same ID, number, or username already exists.";
-//            }
-//
-//            authService.register(newEmp, newUsername, newPassword);
-//            saveEmployeesToFile(EMPLOYEES_FILE);
-//
-//            return "SUCCESS: added new employee: " + newEmp.getFullName();
-//
-//        }
 
         private String addEmployeeCommand(String[] parts) {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
@@ -426,28 +382,64 @@ public class ServerApp {
                 authService.register(newEmp, newUsername, newPassword);
                 saveEmployeesToFile(EMPLOYEES_FILE);
 
-                return "SUCCESS: added new employee: " + newEmp.getFullName();
+                return String.format("Employee has been successfully added to the system: Name: %s,Id: %s, Branch: %s, Role: %s",
+                        newEmp.getFullName(), newEmp.getEmployeeId(), newEmp.getBranchId(), newEmp.getRole());
+
 
             } catch (IllegalArgumentException ex) {
-                return "ERROR: " + ex.getMessage(); // כאן נקבל "Password must be at least 4 characters" או כל שגיאה אחרת
+                return "ERROR: " + ex.getMessage();
             } catch (Exception ex) {
                 return "ERROR: Invalid input or role.";
             }
         }
 
-
-
-
         // ---------------------------------------------------
         // SELL command (with logging)
         // ---------------------------------------------------
-        private String sellCommand(String[] parts) {
+        // Employee sells product to a customer
+//        private String sellCommand(String[] parts) {
+//            if (loggedInEmployee.getRole() == Role.ADMIN) {
+//                return "ERROR: ADMIN cannot SELL products.";
+//            }
+//            if (parts.length < 4) {
+//                return "Usage: SELL <productId> <quantity> <customerId>";
+//            }
+//            String productId = parts[1];
+//            int qty;
+//            try {
+//                qty = Integer.parseInt(parts[2]);
+//            } catch (NumberFormatException e) {
+//                return "ERROR: quantity must be an integer.";
+//            }
+//            String customerId = parts[3];
+//            Customer customer = customerService.getCustomerById(customerId);
+//            if (customer == null) {
+//                return "ERROR: No customer found with ID " + customerId + ". Please ADD_CUSTOMER first.";
+//            }
+//            double finalPrice = saleService.purchaseProduct(customer, productId, qty);
+//            if (finalPrice < 0) {
+//                return "ERROR: Unable to sell (invalid product or insufficient stock).";
+//            }
+//
+//            // Log the SELL
+//            String logMsg = String.format(
+//                    "SELL: Employee '%s' in branch '%s' sold productId='%s' (qty=%d) to customer '%s'",
+//                    loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(),
+//                    productId, qty, customer.getCustomerName());
+//            logAction(logMsg);
+//
+//            return "SUCCESS: Sold " + qty + " of " + productId + " to " + customerId
+//                    + " (" + customer.getCustomerName() + "). Final price: " + finalPrice;
+//        }
+
+        private String sellProductCommand(String[] parts) {
             if (loggedInEmployee.getRole() == Role.ADMIN) {
-                return "ERROR: ADMIN cannot SELL products.";
+                return "ERROR: ADMIN cannot sell products.";
             }
             if (parts.length < 4) {
                 return "Usage: SELL <productId> <quantity> <customerId>";
             }
+
             String productId = parts[1];
             int qty;
             try {
@@ -455,127 +447,213 @@ public class ServerApp {
             } catch (NumberFormatException e) {
                 return "ERROR: quantity must be an integer.";
             }
+
             String customerId = parts[3];
             Customer customer = customerService.getCustomerById(customerId);
             if (customer == null) {
                 return "ERROR: No customer found with ID " + customerId + ". Please ADD_CUSTOMER first.";
             }
-            double finalPrice = saleService.purchaseProduct(customer, productId, qty);
-            if (finalPrice < 0) {
-                return "ERROR: Unable to sell (invalid product or insufficient stock).";
+
+            // Branch-aware lookup
+            Product product = productService.getProductByIdAndBranch(productId, loggedInEmployee.getBranchId());
+            if (product == null) {
+                return "ERROR: Product not found in your branch.";
             }
+
+            double finalPrice = saleService.sellProduct(customer, productId, loggedInEmployee.getBranchId(), qty);
+            saveProductsToFile(PRODUCTS_FILE);
 
             // Log the SELL
-            String logMsg = String.format(
+            logAction(String.format(
                     "SELL: Employee '%s' in branch '%s' sold productId='%s' (qty=%d) to customer '%s'",
                     loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(),
-                    productId, qty, customer.getCustomerName());
-            logAction(logMsg);
+                    productId, qty, customer.getCustomerName()));
 
-            return "SUCCESS: Sold " + qty + " of " + productId + " to " + customerId
-                    + " (" + customer.getCustomerName() + "). Final price: " + finalPrice;
+            return String.format(
+                    "Transaction completed successfully! Sold %d units of product '%s' - (Id= '%s') to customer %s (Id= %s). Final price: %.2f",
+                    qty, product.getProductName(), product.getProductId(), customer.getCustomerName(), customerId, finalPrice
+            );
+
         }
 
         // ---------------------------------------------------
-        // BUY_PRODUCT command (with logging)
+        // PURCHASE_PRODUCT command (with logging)
         // ---------------------------------------------------
-        private String buyProductCommand(String[] parts) {
-            if (loggedInEmployee.getRole() == Role.ADMIN) {
-                return "ERROR: ADMIN cannot buy products.";
-            }
-            if (parts.length < 7) {
-                return "Usage: BUY_PRODUCT <productId> <quantity> <productName> <category> <price> <branch>";
-            }
-            String productId = parts[1];
-            int quantity;
-            try {
-                quantity = Integer.parseInt(parts[2]);
-            } catch (NumberFormatException e) {
-                return "ERROR: quantity must be integer.";
-            }
+        //Employee buys new stock from supplier or adds a new product to the branch.
 
-            String productName = parts[3];
-            String category = parts[4];
-            double price;
-            try {
-                price = Double.parseDouble(parts[5]);
-            } catch (NumberFormatException ex) {
-                return "ERROR: price must be a valid number.";
-            }
-            String branch = parts[6];
+//        private String purchaseProductCommand(String[] parts) {
+//            if (loggedInEmployee.getRole() == Role.ADMIN) {
+//                return "ERROR: ADMIN cannot purchase products.";
+//            }
+//            if (parts.length < 7) {
+//                return "Usage: PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>";
+//            }
+//
+//            String productId = parts[1];
+//            String productName = parts[2];
+//            String category = parts[3];
+//            double price;
+//            int quantity;
+//            String branch = parts[6];
+//
+//            try {
+//                price = Double.parseDouble(parts[4]);
+//            } catch (NumberFormatException e) {
+//                return "ERROR: price must be a valid number.";
+//            }
+//
+//            try {
+//                quantity = Integer.parseInt(parts[5]);
+//            } catch (NumberFormatException e) {
+//                return "ERROR: quantity must be an integer.";
+//            }
+//
+//            if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch)) {
+//                return "ERROR: You can't purchase products for a different branch.";
+//            }
+//
+//            Product existing = productService.getProductByIdAndBranch(productId, branch);
+//            if (existing != null) {
+//                existing.setQuantityInStock(existing.getQuantityInStock() + quantity);
+//                saveProductsToFile(PRODUCTS_FILE);
+//
+//                logAction(String.format("PURCHASE: Employee '%s' in branch '%s' added %d to product '%s'",
+//                        loggedInEmployee.getFullName(), branch, quantity, productId));
+//
+//                return "Success!: Increased stock of product [" + productId + "] by " + quantity +
+//                        ". New total in stock = " + existing.getQuantityInStock();
+//
+//            } else {
+//                Product newProduct = new Product(productId, productName, category, price, quantity, branch);
+//                productService.addOrUpdateProduct(newProduct);
+//                saveProductsToFile(PRODUCTS_FILE);
+//
+//                logAction(String.format("PURCHASE: Employee '%s' in branch '%s' created new product '%s' (id=%s) qty=%d",
+//                        loggedInEmployee.getFullName(), branch, productName, productId, quantity));
+//
+//                return "Product has been successfully created with ID: " + productId + " and stock: " + quantity + ".";
+//            }
+//        }
+private String purchaseProductCommand(String[] parts) {
+    if (loggedInEmployee.getRole() == Role.ADMIN) {
+        return "ERROR: ADMIN cannot purchase products.";
+    }
+    if (parts.length < 7) {
+        return "Usage: PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>";
+    }
 
-            String empBranch = loggedInEmployee.getBranchId();
-            if (!empBranch.equalsIgnoreCase(branch)) {
-                return "ERROR: You can't buy product for a different branch.";
-            }
+    String productId = parts[1];
+    String productName = parts[2];
+    String category = parts[3];
+    double price;
+    int quantity;
+    String branch = parts[6];
 
-            Product existingProduct = productService.getProductById(productId);
-            if (existingProduct != null) {
-                int oldStock = existingProduct.getQuantityInStock();
-                int newStock = oldStock + quantity;
-                existingProduct.setQuantityInStock(newStock);
-                saveProductsToFile(PRODUCTS_FILE);
+    try {
+        price = Double.parseDouble(parts[4]);
+    } catch (NumberFormatException e) {
+        return "ERROR: price must be a valid number.";
+    }
 
-                // Log the BUY
-                String logMsg = String.format(
-                        "BUY: Employee '%s' in branch '%s' purchased more of productId='%s' (qty=%d)",
-                        loggedInEmployee.getFullName(), empBranch, productId, quantity);
-                logAction(logMsg);
+    try {
+        quantity = Integer.parseInt(parts[5]);
+    } catch (NumberFormatException e) {
+        return "ERROR: quantity must be an integer.";
+    }
 
-                return "SUCCESS: Product " + productId + " stock increased by " + quantity
-                        + ". New total = " + newStock;
-            } else {
-                // brand-new product
-                Product newProduct = new Product(productId, productName, category, price, quantity, branch);
-                productService.addProduct(newProduct);
-                saveProductsToFile(PRODUCTS_FILE);
+    if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch)) {
+        return "ERROR: You can't purchase products for a different branch.";
+    }
 
-                // Log the new product buy
-                String logMsg = String.format(
-                        "BUY: Employee '%s' in branch '%s' created new product '%s' (id=%s) with qty=%d",
-                        loggedInEmployee.getFullName(), empBranch, productName, productId, quantity);
-                logAction(logMsg);
+    Product existing = productService.getProductByIdAndBranch(productId, branch);
+    if (existing != null) {
+        existing.setQuantityInStock(existing.getQuantityInStock() + quantity);
+        saveProductsToFile(PRODUCTS_FILE);
 
-                return "SUCCESS: Created new product " + productId + " with stock = " + quantity;
-            }
-        }
+        logAction(String.format("PURCHASE: Employee '%s' in branch '%s' added %d to product '%s'",
+                loggedInEmployee.getFullName(), branch, quantity, productId));
+
+        return "Product stock successfully updated: " + productId +
+                " increased by " + quantity +
+                ". New total = " + existing.getQuantityInStock();
+    } else {
+        Product newProduct = new Product(productId, productName, category, price, quantity, branch);
+        productService.addOrUpdateProduct(newProduct);
+        saveProductsToFile(PRODUCTS_FILE);
+
+        logAction(String.format("PURCHASE: Employee '%s' in branch '%s' created new product '%s' (id=%s) qty=%d",
+                loggedInEmployee.getFullName(), branch, productName, productId, quantity));
+
+        return "Product has been successfully created: " + productName +
+                " (ID=" + productId + ") with initial stock of " + quantity + ".";
+    }
+}
+
 
         // ---------------------------------------------------
         // ADD_CUSTOMER command (with logging)
         // ---------------------------------------------------
+
         private String addCustomerCommand(String[] parts) {
             if (parts.length < 5) {
-                return "Usage: ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)";
+                return "Usage: ADD_CUSTOMER <fullName> <id> <phone> <type> (NEW, RETURNING, VIP)";
             }
-            String name = parts[1];
-            String id = parts[2];
-            String phone = parts[3];
-            String type = parts[4].toUpperCase();
-            Customer customer;
-            switch (type) {
-                case "NEW":
-                    customer = new NewCustomer(name, id, phone);
-                    break;
-                case "RETURNING":
-                    customer = new ReturningCustomer(name, id, phone);
-                    break;
-                case "VIP":
-                    customer = new VIPCustomer(name, id, phone);
-                    break;
-                default:
-                    return "ERROR: unknown customer type: " + type;
+
+            try {
+                int currentIndex = 1;
+                StringBuilder nameBuilder = new StringBuilder();
+                while (currentIndex < parts.length && !parts[currentIndex].matches("\\d{9}")) {
+                    if (nameBuilder.length() > 0) {
+                        nameBuilder.append(" ");
+                    }
+                    nameBuilder.append(parts[currentIndex]);
+                    currentIndex++;
+                }
+
+                String fullName = nameBuilder.toString();
+
+                String customerId = parts[currentIndex++];
+                String phoneNumber = parts[currentIndex++];
+                String type = parts[currentIndex++].toUpperCase();
+
+                Customer customer;
+                switch (type) {
+                    case "NEW":
+                        customer = new NewCustomer(fullName, customerId, phoneNumber);
+                        break;
+                    case "RETURNING":
+                        customer = new ReturningCustomer(fullName, customerId, phoneNumber);
+                        break;
+                    case "VIP":
+                        customer = new VIPCustomer(fullName, customerId, phoneNumber);
+                        break;
+                    default:
+                        return "ERROR: unknown customer type: " + type;
+                }
+
+                customerService.addCustomer(customer);
+
+                saveCustomersToFile(CUSTOMERS_FILE);
+
+                String logMsg = String.format(
+                        "Employee '%s' (Role=%s) added new customer '%s' (ID=%s)",
+                        loggedInEmployee.getFullName(),
+                        loggedInEmployee.getRole(),
+                        customer.getCustomerName(),
+                        customer.getCustomerId()
+                );
+                logAction(logMsg);
+
+                return "Customer has been successfully added to the system with ID: " + customerId + ".";
+
+            } catch (IllegalArgumentException ex) {
+                return "ERROR: " + ex.getMessage();
+            } catch (Exception ex) {
+                return "ERROR: Failed to add customer - " + ex.getMessage();
             }
-            customerService.addCustomer(customer);
-            saveCustomersToFile(CUSTOMERS_FILE);
-
-            // Log the new customer
-            String logMsg = String.format("Employee '%s' (Role=%s) added new customer '%s' (ID=%s)",
-                    loggedInEmployee.getFullName(), loggedInEmployee.getRole(), customer.getCustomerName(),
-                    customer.getCustomerId());
-            logAction(logMsg);
-
-            return "SUCCESS: Created new " + type + " customer: " + name + " (ID=" + id + ")";
         }
+
+
 
         // ---------------------------------------------------
         // showEmployees, showProducts, showCustomers
@@ -592,7 +670,7 @@ public class ServerApp {
             StringBuilder sb = new StringBuilder();
 
             sb.append(String.format("%-20s %-12s %-15s %-15s %-8s %-10s %-15s %-12s\n",
-                    "Name", "ID", "Phone", "BankAccount", "Branch", "EmpNum", "Role", "Username"));
+                    "Name", "Id", "Phone", "BankAccount", "Branch", "EmpNum", "Role", "Username"));
             sb.append("---------------------------------------------------------------------------------------------------------------\n");
 
             for (Employee emp : all) {
@@ -611,17 +689,20 @@ public class ServerApp {
 
 
         private String showProducts() {
+            List<Product> productsToShow;
+
             if (loggedInEmployee.getRole() == Role.ADMIN) {
-                return productService.getFormattedAllProducts();
+                productsToShow = productService.getAllProducts();
             } else {
-                String branch = loggedInEmployee.getBranchId();
-                List<Product> branchProducts = productService.getProductsByBranch(branch);
-                if (branchProducts.isEmpty()) {
-                    return "No products found for branch " + branch;
-                }
-                return productService.getFormattedProductList(branchProducts);
+                productsToShow = productService.getProductsByBranch(loggedInEmployee.getBranchId());
+                if (productsToShow.isEmpty())
+                    return "No products found for branch " + loggedInEmployee.getBranchId();
             }
+
+            return productService.formatProductList(productsToShow);
         }
+
+
 
         private String showCustomers() {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
@@ -633,7 +714,7 @@ public class ServerApp {
             }
             StringBuilder sb = new StringBuilder();
             sb.append(String.format("%-20s %-10s %-15s %-15s\n",
-                    "Name", "ID", "Phone", "Type"));
+                    "Name", "Id", "Phone", "Type"));
             sb.append("-------------------------------------------------------------\n");
             for (Customer customer : allCustomers) {
                 sb.append(String.format("%-20s %-10s %-15s %-15s\n",
@@ -677,7 +758,7 @@ public class ServerApp {
                 e.printStackTrace();
                 return "ERROR writing log files: " + e.getMessage();
             }
-            return "SUCCESS: sales logs saved in logs/sales_by_branch.json and logs/sales_by_productType.json.";
+            return "SUCCESS!: sales logs saved in logs/sales_by_branch.json and logs/sales_by_productType.json.";
         }
 
         private String buildJsonFromSalesMap(Map<String, List<SaleRecord>> grouped) {
@@ -1016,7 +1097,7 @@ private void loadEmployeesFromFile(String filePath) {
                 prodJson += "}";
             Product p = parseProductFromJson(prodJson);
             if (p != null) {
-                productService.addProduct(p);
+                productService.addOrUpdateProduct(p);
             }
         }
         System.out.println("Loaded products from file: " + filePath);
@@ -1185,12 +1266,12 @@ private void loadEmployeesFromFile(String filePath) {
         for (int i = 0; i < products.size(); i++) {
             Product p = products.get(i);
             sb.append("  {\n");
-            sb.append("    \"id\": \"").append(p.getProductId()).append("\",\n");
-            sb.append("    \"name\": \"").append(p.getProductName()).append("\",\n");
+            sb.append("    \"productId\": \"").append(p.getProductId()).append("\",\n");
+            sb.append("    \"productName\": \"").append(p.getProductName()).append("\",\n");
             sb.append("    \"category\": \"").append(p.getCategory()).append("\",\n");
             sb.append("    \"price\": ").append(p.getPrice()).append(",\n");
             sb.append("    \"quantityInStock\": ").append(p.getQuantityInStock()).append(",\n");
-            sb.append("    \"branch\": \"").append(p.getBranch()).append("\"\n");
+            sb.append("    \"branchId\": \"").append(p.getBranch()).append("\"\n");
             sb.append("  }");
             if (i < products.size() - 1) {
                 sb.append(",");
@@ -1264,9 +1345,9 @@ private void loadEmployeesFromFile(String filePath) {
         for (int i = 0; i < customers.size(); i++) {
             Customer c = customers.get(i);
             sb.append("  {\n");
-            sb.append("    \"name\": \"").append(c.getCustomerName()).append("\",\n");
-            sb.append("    \"id\": \"").append(c.getCustomerId()).append("\",\n");
-            sb.append("    \"phone\": \"").append(c.getPhoneNumber()).append("\",\n");
+            sb.append("    \"fullName\": \"").append(c.getCustomerName()).append("\",\n");
+            sb.append("    \"customerId\": \"").append(c.getCustomerId()).append("\",\n");
+            sb.append("    \"phoneNumber\": \"").append(c.getPhoneNumber()).append("\",\n");
             sb.append("    \"type\": \"").append(c.getCustomerType()).append("\"\n");
             sb.append("  }");
             if (i < customers.size() - 1) {

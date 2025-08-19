@@ -1,8 +1,5 @@
 package Models;
 
-import java.util.HashSet;
-import java.util.Set;
-
 public class Product {
     private String productId; // unique ID
     private String productName;
@@ -19,7 +16,7 @@ public class Product {
 
     public Product(String productId, String name, String category,
             double price, int quantityInStock, String branch) {
-        setProductId(productId, branch);
+        setProductId(productId);
         setProductName(name);
         setCategory(category);
         setPrice(price);
@@ -27,60 +24,33 @@ public class Product {
         setBranch(branch);
     }
 
-    // Static sets for uniqueness checks
-    private static final Set<String> existingProductIds = new HashSet<>();
-
     // Getters & Setters
-    public String getProductId() {
-        return productId;
-    }
-
-//    public void setProductId(String productId) {
-//        if (productId == null || productId.isEmpty()) {
-//            throw new IllegalArgumentException("Product ID cannot be null or empty.");
-//        }
-//        if (existingProductIds.contains(productId)) {
-//            throw new IllegalArgumentException("Product ID already exists: " + productId);
-//        }
-//        this.productId = productId;
-//        existingProductIds.add(productId);
-//    }
-
-    public void setProductId(String productId, String branchId) {
+    public String getProductId() { return productId; }
+    public void setProductId(String productId) {
         if (productId == null || productId.isEmpty()) {
-            throw new IllegalArgumentException("Product ID cannot be null or empty.");
-        }
-        // unique
-        String key = productId + "-" + branchId;
-        if (existingProductIds.contains(key)) {
-            throw new IllegalArgumentException("Product ID already exists in this branch: " + key);
+            throw new IllegalArgumentException("Product Id cannot be null or empty.");
         }
         this.productId = productId;
-        existingProductIds.add(key);
     }
 
-
-
-    public String getProductName() {
-        return productName;
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) {
+        if (productName == null || productName.isEmpty()) {
+            throw new IllegalArgumentException("Product name cannot be null or empty.");
+        }
+        this.productName = productName;
     }
 
-    public void setProductName(String name) {
-        this.productName = name;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
+    public String getCategory() { return category; }
     public void setCategory(String category) {
+        if (category == null || category.isEmpty()) {
+            throw new IllegalArgumentException("Category cannot be null or empty.");
+        }
         this.category = category;
     }
 
-    public double getPrice() {
-        return price;
-    }
 
+    public double getPrice() { return price; }
     public void setPrice(double price) {
         if (price < 0) {
             throw new IllegalArgumentException("Price cannot be negative.");
@@ -88,10 +58,7 @@ public class Product {
         this.price = price;
     }
 
-    public int getQuantityInStock() {
-        return quantityInStock;
-    }
-
+    public int getQuantityInStock() { return quantityInStock; }
     public void setQuantityInStock(int quantityInStock) {
         if (quantityInStock < 0) {
             throw new IllegalArgumentException("Quantity in stock cannot be negative.");
@@ -99,26 +66,18 @@ public class Product {
         this.quantityInStock = quantityInStock;
     }
 
-    public String getBranch() {
-        return branchId;
-    }
-
-    public void setBranch(String branch) {
-        if (branch == null || branch.isEmpty()) {
-            throw new IllegalArgumentException("Branch must be specified for a product.");
+    public String getBranch() { return branchId; }
+    public void setBranch(String branchId) {
+        if (branchId == null || branchId.isEmpty()) {
+            throw new IllegalArgumentException("Branch must be specified.");
         }
-        this.branchId = branch;
+        this.branchId = branchId;
     }
 
     @Override
     public String toString() {
-        return "Product{" +
-                "productId='" + productId + '\'' +
-                ", name='" + productName + '\'' +
-                ", category='" + category + '\'' +
-                ", price=" + price +
-                ", quantityInStock=" + quantityInStock +
-                ", branch='" + branchId + '\'' +
-                '}';
+        return String.format("Product{id='%s', name='%s', category='%s', price=%.2f, stock=%d, branch='%s'}",
+                productId, productName, category, price, quantityInStock, branchId);
     }
+
 }
