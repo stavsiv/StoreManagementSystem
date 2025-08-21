@@ -58,5 +58,23 @@
     "customerId": "200893035",
     "phoneNumber": "0561212121",
     "type": "VIP"
+  },
+  {
+    "fullName": "Lucy Chain",
+    "customerId": "318400000",
+    "phoneNumber": "0543600291",
+    "type": "New"
+  },
+  {
+    "fullName": "Lucy Chain",
+    "customerId": "318500000",
+    "phoneNumber": "0543600291",
+    "type": "New"
+  },
+  {
+    "fullName": "Willian Grey",
+    "customerId": "023454635",
+    "phoneNumber": "0581111112",
+    "type": "VIP"
   }
 ]

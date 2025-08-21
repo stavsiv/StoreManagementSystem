@@ -15,12 +15,14 @@ public class SaleService {
      */
 
     private ProductService productService;
-    private static List<SaleRecord> allSales;
+    private static List<SaleRecord> allSales = new ArrayList<>();
 
-    // Constructor
+
     public SaleService(ProductService productService) {
+        if (productService == null) {
+            throw new IllegalArgumentException("ProductService cannot be null!");
+        }
         this.productService = productService;
-        this.allSales = new ArrayList<>();
     }
 
     public double sellProduct(Customer customer, String productId, String branchId, int quantity) {

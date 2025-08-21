@@ -19,15 +19,4 @@ public class BranchService {
         branches.put(branch.getBranchId(), branch);
     }
 
-//    public Branch getBranchById(String branchId) {
-//        return branches.get(branchId);
-//    }
-//
-//    public void removeBranch(String branchId) {
-//        branches.remove(branchId);
-//    }
-//
-//    public Map<String, Branch> getAllBranches() {
-//        return branches;
-//    }
 }

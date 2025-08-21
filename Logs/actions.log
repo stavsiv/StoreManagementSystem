@@ -21,3 +21,9 @@
 [2025-08-19 19:41:58] Employee 'Adi Siv' (Role=CASHIER) added new customer 'Lucy Chain' (ID=318500000)
 [2025-08-19 19:43:26] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P100' (qty=5) to customer 'Lucy Chain'
 [2025-08-19 19:44:36] PURCHASE: Employee 'Adi Siv' in branch 'B003' added 15 to product 'P100'
+[2025-08-21 18:22:39] Employee 'Stav Sivilya' (Role=ADMIN) added new customer 'Willian Grey' (ID=023454635)
+[2025-08-21 18:53:51] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P700' (qty=5) to customer 'Naor Didi'
+[2025-08-21 18:56:39] PURCHASE: Employee 'Adi Siv' in branch 'B003' added 10 to product 'P700'
+[2025-08-21 18:59:45] SELL: Employee 'Juliet Snow' in branch 'B002' sold productId='P300' (qty=25) to customer 'Naor Didi'
+[2025-08-21 19:01:51] PURCHASE: Employee 'Juliet Snow' in branch 'B002' added 12 to product 'P300'
+[2025-08-21 19:08:55] ADMIN 'Stav Sivilya' converted logs to Word doc at 'logs/sales_report.doc'.

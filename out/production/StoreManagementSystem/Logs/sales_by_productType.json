@@ -1,11 +1,11 @@
 {
-  "Accessorise": [
+  "Clothing": [
     {
-      "productId": "P700",
-      "productName": "Earings",
+      "productId": "P100",
+      "productName": "Jeans",
       "quantity": 5,
-      "finalPrice": 675.0,
-      "saleTime": "2025-08-19 13:38:16"
+      "finalPrice": 1000.0,
+      "saleTime": "2025-08-19 19:43:26"
     }
   ]
 }

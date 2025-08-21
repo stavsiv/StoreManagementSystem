@@ -70,5 +70,11 @@
     "customerId": "318500000",
     "phoneNumber": "0543600291",
     "type": "New"
+  },
+  {
+    "fullName": "Willian Grey",
+    "customerId": "023454635",
+    "phoneNumber": "0581111112",
+    "type": "VIP"
   }
 ]
