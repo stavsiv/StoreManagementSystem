@@ -1,41 +1,51 @@
 package Server;
-
 import Server.Utils.FileUtils;
+
 import Models.*;
+import Models.Employee;
+
 import Services.*;
+import Services.ChatService;
+import Services.LogsService;
+import Services.SaleService;
 import java.io.*;
+import java.util.*;
 import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.*;
 
 /**
- * Handles client sessions and commands in the Store Management System.
+ class to handle client sessions.
  */
-public class ClientHandler implements Runnable {
 
+public class ClientHandler implements Runnable {
     private final Socket clientSocket;
     private final AuthService authService;
     private final EmployeeService employeeService;
     private final ProductService productService;
     private final CustomerService customerService;
+    private final BranchService branchService;
     private final SaleService saleService;
     private final ChatService chatService;
 
+    // logging appended actions to "logs/actions.log"
     private static final String ACTION_LOG_FILE = "Logs/actions.log";
 
     private Employee loggedInEmployee;
     private String currentUsername;
+
+    // Keep track of the current chat ID the user is in
     private String currentChatId = null;
 
+    // Constructor: get socket and services from ServerApp
     public ClientHandler(Socket socket, AuthService authService, EmployeeService employeeService,
-                         ProductService productService, CustomerService customerService,
-                         BranchService branchService, SaleService saleService, ChatService chatService) {
+                         ProductService productService, CustomerService customerService, BranchService branchService, SaleService saleService, ChatService chatService) {
         this.clientSocket = socket;
         this.authService = authService;
         this.employeeService = employeeService;
         this.productService = productService;
         this.customerService = customerService;
+        this.branchService = branchService;
         this.saleService = saleService;
         this.chatService = chatService;
     }
@@ -44,390 +54,160 @@ public class ClientHandler implements Runnable {
     public void run() {
         try (
                 BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)
-        ) {
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true)) {
             while (true) {
-                if (!login(in, out)) break;
-                if (!handleCommands(in, out)) break;
+                if (!login(in, out)) {
+                    break;
+                }
+                if (!handleCommands(in, out)) {
+                    break;
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
         } finally {
-            if (currentUsername != null) authService.logout(currentUsername);
-            try { clientSocket.close(); } catch (IOException ex) { ex.printStackTrace(); }
+            if (currentUsername != null) {
+                authService.logout(currentUsername);
+            }
+            try {
+                clientSocket.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
             System.out.println("Client disconnected.");
         }
     }
 
-    // ------------------ Logging ------------------
+    /**
+     * Append a line to "logs/actions.log" with a timestamp.
+     */
     private void logAction(String action) {
         File logsDir = new File("logs");
-        if (!logsDir.exists() && !logsDir.mkdirs()) {
-            System.err.println("ERROR: Failed to create logs directory.");
-            return;
+        if (!logsDir.exists()) {
+            boolean dirCreated = logsDir.mkdirs();
+            if (!dirCreated) {
+                System.err.println("ERROR: Failed to create logs directory.");
+                return;
+            }
         }
 
-        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
-        String finalLine = "[" + timestamp + "] " + action;
+        String timestamp = LocalDateTime.now()
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
 
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(ACTION_LOG_FILE, true))) {
+        String finalLine = "[" + timestamp + "] " + action;
+        File logFile = new File(ACTION_LOG_FILE);
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(logFile, true))) {
             writer.write(finalLine + "\n");
         } catch (IOException e) {
             System.err.println("ERROR: Could not write to actions.log - " + e.getMessage());
         }
     }
 
-    // ------------------ Login ------------------
     private boolean login(BufferedReader in, PrintWriter out) throws IOException {
         out.println("Welcome to the Store Management System!");
         out.println("Please enter your username:");
-        String username = in.readLine();
-        if (username == null) return false;
+        String username = in.readLine().trim();
+
+        if (username == null)
+            return false;
 
         out.println("Please enter your password:");
-        String password = in.readLine();
-        if (password == null) return false;
+        String password = in.readLine().trim();
+        if (password == null)
+            return false;
 
-        Employee loggedInEmployee = authService.login(username.trim(), password.trim());
+        Employee loggedInEmployee = authService.login(username, password);
         if (loggedInEmployee == null) {
             out.println("ERROR: Invalid credentials or user already logged in. Closing connection...");
-            System.out.println("Employees loaded:");
-            employeeService.listAllEmployees().forEach(e ->
-                    System.out.println(" -> " + e.getUserName() + " / " + e.getPassword())
-            );
-
             return false;
         }
 
         this.loggedInEmployee = loggedInEmployee;
         this.currentUsername = username;
-        out.println("Login successful! Hello, " + loggedInEmployee.getFullName() +
-                " (Role: " + loggedInEmployee.getRole() + ")");
+        out.println("Login successful! Hello, " + loggedInEmployee.getFullName() + " (Role: "
+                + loggedInEmployee.getRole() + ")");
         return true;
     }
 
-    // ------------------ Command Handling ------------------
     private boolean handleCommands(BufferedReader in, PrintWriter out) throws IOException {
         out.println("Type 'Menu' to see available commands, or 'Exit' to exit.");
 
         String line;
         while ((line = in.readLine()) != null) {
             line = line.trim();
-            if (line.equalsIgnoreCase("Exit")) {
+            if (line.equalsIgnoreCase("EXIT")) {
                 out.println("Goodbye!");
                 return false;
             }
+
             String response = handleCommand(line);
             out.println(response);
-            if (response.contains("Returning to login screen")) return true; // back to login
+
+            // Handle logout separately
+            if (response.contains("Returning to login screen")) {
+                return true; // back to login
+            }
         }
         return false;
     }
 
     private String handleCommand(String line) {
+        line = line.trim();
         if (line.isEmpty()) return "";
 
-        if (line.toUpperCase().startsWith("SEND_MSG")) return sendMessageCommand(line);
+        if (line.toUpperCase().startsWith("SEND_MSG")) {
+            return sendMessageCommand(line);
+        }
 
+        // Normalize command: replace spaces with underscores and uppercase
         String[] parts = line.split(" ");
         String command = parts[0].toUpperCase().replace(" ", "_");
 
-        return switch (command) {
-            case "MENU" -> showMenu();
-            case "ADD_EMPLOYEE" -> addEmployeeCommand(parts);
-            case "SHOW_EMPLOYEES" -> showEmployees();
-            case "SHOW_PRODUCTS" -> showProducts();
-            case "SELL" -> sellProductCommand(parts);
-            case "PURCHASE_PRODUCT" -> purchaseProductCommand(parts);
-            case "SAVE_SALES" -> saveSalesLogs();
-            case "VIEW_SALES_LOGS" -> viewSalesLogs();
-            case "ADD_CUSTOMER" -> addCustomerCommand(parts);
-            case "SHOW_CUSTOMERS" -> showCustomers();
-            case "LOGS_TO_WORD" -> logsToWordCommand();
-            case "START_CHAT" -> startChatCommand(parts);
-            case "JOIN_CHAT" -> joinChatCommand(parts);
-            case "SHOW_CHAT" -> showChatWithoutParam();
-            case "LIST_CHATS" -> listChatsCommand();
-            case "LOGOUT" -> {
+        switch (command) {
+            case "MENU":
+                return showMenu();
+            case "ADD_EMPLOYEE":
+                return addEmployeeCommand(parts);
+            case "SHOW_EMPLOYEES":
+                return showEmployees();
+            case "SHOW_PRODUCTS":
+                return showProducts();
+            case "SELL":
+                return sellProductCommand(parts);
+            case "PURCHASE_PRODUCT":
+                return purchaseProductCommand(parts);
+            case "SAVE_SALES":
+                return saveSalesLogs();
+            case "VIEW_SALES_LOGS":
+                return viewSalesLogs();
+            case "ADD_CUSTOMER":
+                return addCustomerCommand(parts);
+            case "SHOW_CUSTOMERS":
+                return showCustomers();
+            case "LOGS_TO_WORD":
+                return logsToWordCommand();
+            case "START_CHAT":
+                return startChatCommand(parts);
+            case "JOIN_CHAT":
+                return joinChatCommand(parts);
+            case "SHOW_CHAT":
+                return showChatWithoutParam();
+            case "LIST_CHATS":
+                return listChatsCommand();
+            case "LOGOUT":
                 authService.logout(currentUsername);
                 loggedInEmployee = null;
                 currentUsername = null;
-                yield "You have been logged out. Returning to login screen...";
-            }
-            case "Exit" -> "Goodbye!";
-            default -> "Unknown command: " + command + ". Type Menu for commands.";
-        };
-    }
-
-    // ------------------ Menu ------------------
-    private String showMenu() {
-        StringBuilder sb = new StringBuilder("=== COMMAND MENU ===\n");
-
-        if (loggedInEmployee.getRole() == Role.ADMIN) {
-            sb.append("SHOW_EMPLOYEES - display all employees\n");
-            sb.append("SHOW_CUSTOMERS - display all customers\n");
-            sb.append("SHOW_PRODUCTS - display all products\n");
-            sb.append("ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <empNum> <branch> <role> <username> <password>\n");
-            sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
-            sb.append("SAVE_SALES - save sales logs to JSON\n");
-            sb.append("VIEW_SALES_LOGS - view saved logs\n");
-            sb.append("LOGS_TO_WORD - convert logs to Word doc\n");
-        } else {
-            sb.append("SHOW_PRODUCTS - display products in your branch\n");
-            sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
-            sb.append("SELL <productId> <quantity> <customerId>\n");
-            sb.append("PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>\n");
-        }
-
-        sb.append("LOGOUT - logout\n");
-        sb.append("EXIT - close connection\n");
-        sb.append("--- Chat Commands ---\n");
-        sb.append("START_CHAT <branchId>\n");
-        sb.append("JOIN_CHAT <chatId>\n");
-        sb.append("SEND_MSG <message...>\n");
-        sb.append("SHOW_CHAT\n");
-        sb.append("LIST_CHATS\n");
-        sb.append("====================");
-
-        return sb.toString();
-    }
-
-    /**
-     * Validates that the employee has the required role and that the command has enough parameters.
-     * @param requiredRole The role required to execute the command (null אם לא נדרשת הרשאה).
-     * @param parts        המערך של הפקודה שחולק לרכיבים.
-     * @param minParams    המספר המינימלי של פרמטרים דרושים כולל שם הפקודה.
-     * @return null אם הכל תקין, או מחרוזת שגיאה אם יש בעיה.
-     */
-    private String validateCommand(Role requiredRole, String[] parts, int minParams) {
-        if (requiredRole != null && loggedInEmployee.getRole() != requiredRole) {
-            return "ERROR: Only " + requiredRole + " can execute this command.";
-        }
-        if (parts.length < minParams) {
-            return "ERROR: Not all parameters provided. Expected at least " + (minParams - 1) +
-                    " parameters after the command.";
-        }
-        return null;
-    }
-
-    // ------------------ Employee commands ------------------
-    private String addEmployeeCommand(String[] parts) {
-        String validationError = validateCommand(Role.ADMIN, parts, 10);
-        if (validationError != null) return validationError;
-
-        int currentIndex = 1;
-        StringBuilder nameBuilder = new StringBuilder();
-        while (currentIndex < parts.length && !parts[currentIndex].matches("\\d+")) {
-            if (!nameBuilder.isEmpty()) nameBuilder.append(" ");
-            nameBuilder.append(parts[currentIndex]);
-            currentIndex++;
-        }
-
-        try {
-            String fullName = nameBuilder.toString();
-            String id = parts[currentIndex++];
-            String phone = parts[currentIndex++];
-            String bankAcc = parts[currentIndex++];
-            int empNum = Integer.parseInt(parts[currentIndex++]);
-            String branch = parts[currentIndex++];
-            Role newEmpRole = Role.valueOf(parts[currentIndex++].toUpperCase());
-            String newUsername = parts[currentIndex++];
-            String newPassword = parts[currentIndex++];
-
-            Employee newEmp = new Employee(fullName, id, phone, bankAcc, empNum, branch, newEmpRole, newUsername, newPassword);
-
-            if (!employeeService.addEmployee(newEmp)) {
-                return "ERROR: Employee with same username, ID or number already exists.";
-            }
-
-            authService.register(newEmp, newUsername, newPassword);
-
-            FileUtils.saveToFile(ServerApp.EMPLOYEES_FILE, employeeService.listAllEmployees(), e -> String.format(
-                    """
-                    {
-                      "fullName": "%s",
-                      "employeeId": "%s",
-                      "phoneNumber": "%s",
-                      "accountNumber": "%s",
-                      "employeeNumber": %d,
-                      "branchId": "%s",
-                      "role": "%s",
-                      "userName": "%s",
-                      "password": "%s"
-                    }
-                    """,
-                    e.getFullName(), e.getEmployeeId(), e.getPhoneNumber(), e.getAccountNumber(),
-                    e.getEmployeeNumber(), e.getBranchId(), e.getRole(), e.getUserName(), e.getPassword()
-            ));
-
-            return String.format("Employee successfully added: Name=%s, Id=%s, Branch=%s, Role=%s",
-                    newEmp.getFullName(), newEmp.getEmployeeId(), newEmp.getBranchId(), newEmp.getRole());
-
-        } catch (Exception ex) {
-            return "ERROR: Invalid input.";
+                return "You have been logged out. Returning to login screen...";
+            case "EXIT":
+                return "Goodbye!";
+            default:
+                return "Unknown command: " + command + ". Type MENU for commands.";
         }
     }
 
-    // ------------------ Sell & Purchase ------------------
-    private String sellProductCommand(String[] parts) {
-        String validationError = validateCommand(null, parts, 4);
-        if (validationError != null) return validationError;
-
-
-        String productId = parts[1];
-        int qty;
-        try { qty = Integer.parseInt(parts[2]); } catch (NumberFormatException e) { return "ERROR: quantity must be an integer."; }
-
-        String customerId = parts[3];
-        Customer customer = customerService.getCustomerById(customerId);
-        if (customer == null) return "ERROR: No customer found with ID " + customerId;
-
-        Product product = productService.getProductByIdAndBranch(productId, loggedInEmployee.getBranchId());
-        if (product == null) return "ERROR: Product not found in your branch.";
-
-        double finalPrice = saleService.sellProduct(customer, productId, loggedInEmployee.getBranchId(), qty);
-        FileUtils.saveToFile(ServerApp.PRODUCTS_FILE, productService.getAllProducts(), p -> String.format(
-                """
-                {
-                  "productId": "%s",
-                  "productName": "%s",
-                  "category": "%s",
-                  "price": %.2f,
-                  "quantityInStock": %d,
-                  "branchId": "%s"
-                }
-                """, p.getProductId(), p.getProductName(), p.getCategory(), p.getPrice(), p.getQuantityInStock(), p.getBranch()
-        ));
-
-        logAction(String.format("SELL: Employee '%s' sold product '%s' qty=%d to customer '%s'",
-                loggedInEmployee.getFullName(), productId, qty, customer.getCustomerName()));
-
-        return String.format("Transaction completed! Sold %d units of '%s' to %s. Final price: %.2f",
-                qty, product.getProductName(), customer.getCustomerName(), finalPrice);
-    }
-
-    private String purchaseProductCommand(String[] parts) {
-        String validationError = validateCommand(null, parts, 7);
-        if (validationError != null) return validationError;
-
-        String productId = parts[1];
-        String productName = parts[2];
-        String category = parts[3];
-        double price;
-        int quantity;
-        String branch = parts[6];
-
-        try { price = Double.parseDouble(parts[4]); }
-        catch (NumberFormatException e) { return "ERROR: price must be a number."; }
-
-        try { quantity = Integer.parseInt(parts[5]); }
-        catch (NumberFormatException e) { return "ERROR: quantity must be an integer."; }
-
-        if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch))
-            return "ERROR: You can't purchase products for a different branch.";
-
-        Product existing = productService.getProductByIdAndBranch(productId, branch);
-
-        if (existing != null) {
-            productService.addOrUpdateProduct(existing, quantity);
-            logAction(String.format("PURCHASE: Employee '%s' added %d to product '%s'",
-                    loggedInEmployee.getFullName(), quantity, productId));
-            return "Product stock updated. New total: " + existing.getQuantityInStock();
-        } else {
-            Product newProduct = new Product(productId, productName, category, price, quantity, branch);
-            productService.addOrUpdateProduct(newProduct, 0); // כמות אפס כי חדש
-            logAction(String.format("PURCHASE: Employee '%s' created new product '%s' (id=%s) qty=%d",
-                    loggedInEmployee.getFullName(), productName, productId, quantity));
-            return "Product created: " + productName + " (ID=" + productId + ") with stock " + quantity;
-        }
-    }
-
-    // ------------------ Customers ------------------
-    private String addCustomerCommand(String[] parts) {
-        String validationError = validateCommand(null, parts, 5);
-        if (validationError != null) return validationError;
-        try {
-            int idx = 1;
-            StringBuilder nameBuilder = new StringBuilder();
-            while (idx < parts.length && !parts[idx].matches("\\d{9}")) {
-                if (!nameBuilder.isEmpty()) nameBuilder.append(" ");
-                nameBuilder.append(parts[idx++]);
-            }
-            String fullName = nameBuilder.toString();
-            String customerId = parts[idx++];
-            String phone = parts[idx++];
-            String type = parts[idx].toUpperCase();
-
-            Customer customer = switch (type) {
-                case "NEW" -> new NewCustomer(fullName, customerId, phone);
-                case "RETURNING" -> new ReturningCustomer(fullName, customerId, phone);
-                case "VIP" -> new VIPCustomer(fullName, customerId, phone);
-                default -> null;
-            };
-            if (customer == null) return "ERROR: unknown customer type: " + type;
-
-            customerService.addCustomer(customer);
-            logAction(String.format("Employee '%s' added customer '%s' (ID=%s)", loggedInEmployee.getFullName(), customer.getCustomerName(), customer.getCustomerId()));
-
-            FileUtils.saveToFile(ServerApp.CUSTOMERS_FILE, customerService.listAllCustomers(), c -> String.format(
-                    """
-                    {
-                      "fullName": "%s",
-                      "customerId": "%s",
-                      "phoneNumber": "%s",
-                      "type": "%s"
-                    }
-                    """, c.getCustomerName(), c.getCustomerId(), c.getPhoneNumber(), c.getCustomerType()
-            ));
-
-            return "Customer added with ID: " + customerId;
-        } catch (Exception ex) {
-            return "ERROR: Failed to add customer - " + ex.getMessage();
-        }
-    }
-
-    // ------------------ Display ------------------
-    private String showEmployees() {
-         if (loggedInEmployee.getRole() != Role.ADMIN) return "ERROR: Only ADMIN can view all employees.";
-        List<Employee> all = employeeService.listAllEmployees();
-        if (all.isEmpty()) return "No employees found.";
-
-        StringBuilder sb = new StringBuilder(String.format("%-20s %-12s %-15s %-15s %-8s %-10s %-15s %-12s\n",
-                "Name", "Id", "Phone", "BankAccount", "Branch", "EmpNum", "Role", "Username"));
-        sb.append("----------------------------------------------------------------------------------------------------------------\n");
-
-        for (Employee emp : all) {
-            sb.append(String.format("%-20s %-12s %-15s %-15s %-8s %-10d %-15s %-12s\n",
-                    emp.getFullName(), emp.getEmployeeId(), emp.getPhoneNumber(), emp.getAccountNumber(),
-                    emp.getBranchId(), emp.getEmployeeNumber(), emp.getRole(), emp.getUserName()));
-        }
-        return sb.toString();
-    }
-
-    private String showProducts() {
-        List<Product> productsToShow = loggedInEmployee.getRole() == Role.ADMIN
-                ? productService.getAllProducts()
-                : productService.getProductsByBranch(loggedInEmployee.getBranchId());
-
-        if (productsToShow.isEmpty()) return "No products found for branch " + loggedInEmployee.getBranchId();
-        return productService.formatProductList(productsToShow);
-    }
-
-    private String showCustomers() {
-        if (loggedInEmployee.getRole() != Role.ADMIN) return "ERROR: Only ADMIN can view all customers.";
-        List<Customer> allCustomers = customerService.listAllCustomers();
-        if (allCustomers.isEmpty()) return "No customers found.";
-
-        StringBuilder sb = new StringBuilder(String.format("%-20s %-10s %-15s %-15s\n", "Name", "Id", "Phone", "Type"));
-        sb.append("-------------------------------------------------------------\n");
-        for (Customer customer : allCustomers) {
-            sb.append(String.format("%-20s %-10s %-15s %-15s\n",
-                    customer.getCustomerName(), customer.getCustomerId(), customer.getPhoneNumber(), customer.getCustomerType()));
-        }
-        return sb.toString();
-    }
-
-    // ------------------ Sales Logs ------------------
+    // NEW COMMAND: LOGS_TO_WORD
     private String logsToWordCommand() {
         if (loggedInEmployee.getRole() != Role.ADMIN) {
             return "ERROR: Only ADMIN can convert logs to Word.";
@@ -463,6 +243,390 @@ public class ClientHandler implements Runnable {
         return "SUCCESS!: logs converted to " + outputDoc;
     }
 
+    private String showMenu() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("=== COMMAND MENU ===\n");
+
+        if (loggedInEmployee.getRole() == Role.ADMIN) {
+            sb.append("ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>\n");
+            sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
+            sb.append("SHOW_EMPLOYEES - display all employees\n");
+            sb.append("SHOW_PRODUCTS - display all products\n");
+            sb.append("SHOW_CUSTOMERS - display all customers\n");
+            sb.append("SAVE_SALES - save sales logs to JSON\n");
+            sb.append("VIEW_SALES_LOGS - view saved logs\n");
+            sb.append("LOGS_TO_WORD - convert logs to Word doc\n");
+        } else {
+            sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
+            sb.append("SHOW_PRODUCTS - display products in your branch\n");
+            sb.append("SELL <productId> <quantity> <customerId>\n");
+            sb.append("PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>\n");
+        }
+
+        sb.append("LOGOUT - logout\n");
+        sb.append("EXIT - close connection\n");
+        sb.append("--- Chat Commands ---\n");
+        sb.append("START_CHAT <branchId>\n");
+        sb.append("JOIN_CHAT <chatId>\n");
+        sb.append("SEND_MSG <message...>\n");
+        sb.append("SHOW_CHAT\n");
+        sb.append("LIST_CHATS\n");
+        sb.append("====================");
+
+        return sb.toString();
+    }
+
+    // ADD_EMPLOYEE command (with logging)
+    private String addEmployeeCommand(String[] parts) {
+        if (loggedInEmployee.getRole() != Role.ADMIN) {
+            return "ERROR: Only ADMIN can add employees.";
+        }
+
+        if (parts.length < 10) {
+            return "ERROR: Not all parameters provided. Usage: ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <branch> <empNum> <role> <username> <password>";
+        }
+
+        int currentIndex = 1;
+        StringBuilder nameBuilder = new StringBuilder();
+        while (currentIndex < parts.length && !parts[currentIndex].matches("\\d+")) {
+            if (!nameBuilder.isEmpty()) nameBuilder.append(" ");
+            nameBuilder.append(parts[currentIndex]);
+            currentIndex++;
+        }
+
+        try {
+            String fullName = nameBuilder.toString();
+            String id = parts[currentIndex++];
+            String phone = parts[currentIndex++];
+            String bankAcc = parts[currentIndex++];
+            String branch = parts[currentIndex++];
+            int empNum = Integer.parseInt(parts[currentIndex++]);
+            String roleStr = parts[currentIndex++].toUpperCase();
+            Role newEmpRole = Role.valueOf(roleStr);
+            String newUsername = parts[currentIndex++];
+            String newPassword = parts[currentIndex++];
+
+            Employee newEmp = new Employee(fullName, id, phone, bankAcc, empNum, branch, newEmpRole, newUsername, newPassword);
+
+            if (!employeeService.addEmployee(newEmp)) {
+                return "ERROR: Employee with same username, ID or number already exists.";
+            }
+
+            authService.register(newEmp, newUsername, newPassword);
+            // Save updated employees list using FileUtils
+            FileUtils.saveToFile(ServerApp.EMPLOYEES_FILE, employeeService.listAllEmployees(), e -> String.format(
+                    """
+                              {
+                                "fullName": "%s",
+                                "employeeId": "%s",
+                                "phoneNumber": "%s",
+                                "accountNumber": "%s",
+                                "employeeNumber": %d,
+                                "branchId": "%s",
+                                "role": "%s",
+                                "userName": "%s",
+                                "password": "%s"
+                              }\
+                            """,
+                    e.getFullName(), e.getEmployeeId(), e.getPhoneNumber(), e.getAccountNumber(),
+                    e.getEmployeeNumber(), e.getBranchId(), e.getRole(), e.getUserName(), e.getPassword()
+            ));
+
+            return String.format("Employee has been successfully added to the system: Name: %s,Id: %s, Branch: %s, Role: %s",
+                    newEmp.getFullName(), newEmp.getEmployeeId(), newEmp.getBranchId(), newEmp.getRole());
+
+
+        } catch (IllegalArgumentException ex) {
+            return "ERROR: " + ex.getMessage();
+        } catch (Exception ex) {
+            return "ERROR: Invalid input or role.";
+        }
+    }
+
+    // SELL command (with logging) (Employee sells product to a customer)
+    private String sellProductCommand(String[] parts) {
+        if (loggedInEmployee.getRole() == Role.ADMIN) {
+            return "ERROR: ADMIN cannot sell products.";
+        }
+        if (parts.length < 4) {
+            return "ERROR: Not all parameters provided. Usage: SELL <productId> <quantity> <customerId>";
+        }
+
+        String productId = parts[1];
+        int qty;
+        try {
+            qty = Integer.parseInt(parts[2]);
+        } catch (NumberFormatException e) {
+            return "ERROR: quantity must be an integer.";
+        }
+
+        String customerId = parts[3];
+        Customer customer = customerService.getCustomerById(customerId);
+        if (customer == null) {
+            return "ERROR: No customer found with ID " + customerId + ". Please ADD_CUSTOMER first.";
+        }
+
+        // Branch-aware lookup
+        Product product = productService.getProductByIdAndBranch(productId, loggedInEmployee.getBranchId());
+        if (product == null) {
+            return "ERROR: Product not found in your branch.";
+        }
+
+        double finalPrice = saleService.sellProduct(customer, productId, loggedInEmployee.getBranchId(), qty);
+        FileUtils.saveToFile(ServerApp.PRODUCTS_FILE, productService.getAllProducts(), p -> String.format(
+                """
+                          {
+                            "productId": "%s",
+                            "productName": "%s",
+                            "category": "%s",
+                            "price": %.2f,
+                            "quantityInStock": %d,
+                            "branchId": "%s"
+                          }\
+                        """,
+                p.getProductId(), p.getProductName(), p.getCategory(),
+                p.getPrice(), p.getQuantityInStock(), p.getBranch()
+        ));
+
+
+        // Log the SELL
+        logAction(String.format(
+                "SELL: Employee '%s' in branch '%s' sold productId='%s' (qty=%d) to customer '%s'",
+                loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(),
+                productId, qty, customer.getCustomerName()));
+
+        return String.format(
+                "Transaction completed successfully! Sold %d units of product '%s' - (Id= '%s') to customer %s (Id= %s). Final price: %.2f",
+                qty, product.getProductName(), product.getProductId(), customer.getCustomerName(), customerId, finalPrice
+        );
+
+    }
+
+
+    // PURCHASE_PRODUCT command (with logging) - (Employee buys new stock from supplier or adds a new product to the branch.)
+    private String purchaseProductCommand(String[] parts) {
+        if (loggedInEmployee.getRole() == Role.ADMIN) {
+            return "ERROR: ADMIN cannot purchase products.";
+        }
+        if (parts.length < 7) {
+            return "ERROR: Not all parameters provided. Usage: PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>";
+        }
+
+        for (int i = 1; i <= 6; i++) {
+            if (parts[i].isEmpty() || parts[i].startsWith("<") && parts[i].endsWith(">")) {
+                return "ERROR: Not all parameters provided. Usage: PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>";
+            }
+        }
+
+
+
+        String productId = parts[1];
+        String productName = parts[2];
+        String category = parts[3];
+        double price;
+        int quantity;
+        String branch = parts[6];
+
+        try {
+            price = Double.parseDouble(parts[4]);
+        } catch (NumberFormatException e) {
+            return "ERROR: price must be a valid number.";
+        }
+
+        try {
+            quantity = Integer.parseInt(parts[5]);
+        } catch (NumberFormatException e) {
+            return "ERROR: quantity must be an integer.";
+        }
+
+        if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch)) {
+            return "ERROR: You can't purchase products for a different branch.";
+        }
+
+        Product existing = productService.getProductByIdAndBranch(productId, branch);
+        if (existing != null) {
+            existing.setQuantityInStock(existing.getQuantityInStock() + quantity);
+            FileUtils.saveToFile(ServerApp.PRODUCTS_FILE, productService.getAllProducts(), p -> String.format(
+                    """
+                              {
+                                "productId": "%s",
+                                "productName": "%s",
+                                "category": "%s",
+                                "price": %.2f,
+                                "quantityInStock": %d,
+                                "branchId": "%s"
+                              }\
+                            """,
+                    p.getProductId(), p.getProductName(), p.getCategory(),
+                    p.getPrice(), p.getQuantityInStock(), p.getBranch()
+            ));
+
+            logAction(String.format("PURCHASE: Employee '%s' in branch '%s' added %d to product '%s'",
+                    loggedInEmployee.getFullName(), branch, quantity, productId));
+
+            return "Product stock successfully updated: " + productId +
+                    " increased by " + quantity +
+                    ". New total = " + existing.getQuantityInStock();
+        } else {
+            Product newProduct = new Product(productId, productName, category, price, quantity, branch);
+            productService.addOrUpdateProduct(newProduct);
+            FileUtils.saveToFile(ServerApp.PRODUCTS_FILE, productService.getAllProducts(), p -> String.format(
+                    """
+                              {
+                                "productId": "%s",
+                                "productName": "%s",
+                                "category": "%s",
+                                "price": %.2f,
+                                "quantityInStock": %d,
+                                "branchId": "%s"
+                              }\
+                            """,
+                    p.getProductId(), p.getProductName(), p.getCategory(),
+                    p.getPrice(), p.getQuantityInStock(), p.getBranch()
+            ));
+
+            logAction(String.format("PURCHASE: Employee '%s' in branch '%s' created new product '%s' (id=%s) qty=%d",
+                    loggedInEmployee.getFullName(), branch, productName, productId, quantity));
+
+            return "Product has been successfully created: " + productName +
+                    " (ID=" + productId + ") with initial stock of " + quantity + ".";
+        }
+    }
+
+
+    // ADD_CUSTOMER command (with logging)
+    private String addCustomerCommand(String[] parts) {
+        if (parts.length < 5) {
+            return "ERROR: Not all parameters provided. Usage: ADD_CUSTOMER <fullName> <id> <phone> <type> (NEW, RETURNING, VIP)";
+        }
+
+        try {
+            int currentIndex = 1;
+            StringBuilder nameBuilder = new StringBuilder();
+            while (currentIndex < parts.length && !parts[currentIndex].matches("\\d{9}")) {
+                if (!nameBuilder.isEmpty()) {
+                    nameBuilder.append(" ");
+                }
+                nameBuilder.append(parts[currentIndex]);
+                currentIndex++;
+            }
+
+            String fullName = nameBuilder.toString();
+
+            String customerId = parts[currentIndex++];
+            String phoneNumber = parts[currentIndex++];
+            String type = parts[currentIndex++].toUpperCase();
+
+            Customer customer;
+            switch (type) {
+                case "NEW":
+                    customer = new NewCustomer(fullName, customerId, phoneNumber);
+                    break;
+                case "RETURNING":
+                    customer = new ReturningCustomer(fullName, customerId, phoneNumber);
+                    break;
+                case "VIP":
+                    customer = new VIPCustomer(fullName, customerId, phoneNumber);
+                    break;
+                default:
+                    return "ERROR: unknown customer type: " + type;
+            }
+
+            customerService.addCustomer(customer);
+
+            FileUtils.saveToFile(ServerApp.CUSTOMERS_FILE, customerService.listAllCustomers(), c -> String.format(
+                    """
+                              {
+                                "fullName": "%s",
+                                "customerId": "%s",
+                                "phoneNumber": "%s",
+                                "type": "%s"
+                              }\
+                            """,
+                    c.getCustomerName(), c.getCustomerId(), c.getPhoneNumber(), c.getCustomerType()
+            ));
+
+            String logMsg = String.format(
+                    "Employee '%s' (Role=%s) added new customer '%s' (ID=%s)",
+                    loggedInEmployee.getFullName(),
+                    loggedInEmployee.getRole(),
+                    customer.getCustomerName(),
+                    customer.getCustomerId()
+            );
+            logAction(logMsg);
+
+            return "Customer has been successfully added to the system with ID: " + customerId + ".";
+
+        } catch (IllegalArgumentException ex) {
+            return "ERROR: " + ex.getMessage();
+        } catch (Exception ex) {
+            return "ERROR: Failed to add customer - " + ex.getMessage();
+        }
+    }
+
+    // showEmployees, showProducts, showCustomers
+    private String showEmployees() {
+        if (loggedInEmployee.getRole() != Role.ADMIN) {
+            return "ERROR: Only ADMIN can view all employees.";
+        }
+        List<Employee> all = employeeService.listAllEmployees();
+        if (all.isEmpty()) {
+            return "No employees found.";
+        }
+        StringBuilder sb = new StringBuilder();
+
+        sb.append(String.format("%-20s %-12s %-15s %-15s %-8s %-10s %-15s %-12s\n",
+                "Name", "Id", "Phone", "BankAccount", "Branch", "EmpNum", "Role", "Username"));
+        sb.append("---------------------------------------------------------------------------------------------------------------\n");
+
+        for (Employee emp : all) {
+            sb.append(String.format("%-20s %-12s %-15s %-15s %-8s %-10d %-15s %-12s\n",
+                    emp.getFullName(),
+                    emp.getEmployeeId(),
+                    emp.getPhoneNumber(),
+                    emp.getAccountNumber(),
+                    emp.getBranchId(),
+                    emp.getEmployeeNumber(),
+                    emp.getRole(),
+                    emp.getUserName()));
+        }
+        return sb.toString();
+    }
+
+    private String showProducts() {
+        List<Product> productsToShow;
+
+        if (loggedInEmployee.getRole() == Role.ADMIN) {
+            productsToShow = productService.getAllProducts();
+        } else {
+            productsToShow = productService.getProductsByBranch(loggedInEmployee.getBranchId());
+            if (productsToShow.isEmpty())
+                return "No products found for branch " + loggedInEmployee.getBranchId();
+        }
+
+        return productService.formatProductList(productsToShow);
+    }
+
+    private String showCustomers() {
+        if (loggedInEmployee.getRole() != Role.ADMIN) {
+            return "ERROR: Only ADMIN can view all customers.";
+        }
+        List<Customer> allCustomers = customerService.listAllCustomers();
+        if (allCustomers.isEmpty()) {
+            return "No customers found.";
+        }
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("%-20s %-10s %-15s %-15s\n",
+                "Name", "Id", "Phone", "Type"));
+        sb.append("-------------------------------------------------------------\n");
+        for (Customer customer : allCustomers) {
+            sb.append(String.format("%-20s %-10s %-15s %-15s\n",
+                    customer.getCustomerName(), customer.getCustomerId(), customer.getPhoneNumber(), customer.getCustomerType()));
+        }
+        return sb.toString();
+    }
+
+    // SAVE_SALES, buildJsonFromSalesMap, viewSalesLogs
     private String saveSalesLogs() {
         if (loggedInEmployee.getRole() != Role.ADMIN) {
             return "ERROR: Only ADMIN can save sales logs.";
@@ -563,7 +727,7 @@ public class ClientHandler implements Runnable {
         return sb.toString();
     }
 
-    // ------------------ Chat Commands ------------------
+    // Chat commands (with NEW logging in each)
     private String startChatCommand(String[] parts) {
         if (parts.length < 2) {
             return "ERROR: Not all parameters provided. Usage: START_CHAT <branchId>";

@@ -73,22 +73,24 @@ public class FileUtils {
             return Collections.emptyList();
         }
 
-        List<String> result = getStrings(jsonContent);
-        return result;
+        return getStrings(jsonContent);
     }
 
     private static List<String> getStrings(String jsonContent) {
-        String trimmed = jsonContent.trim();
-        if (trimmed.startsWith("[")) trimmed = trimmed.substring(1);
-        if (trimmed.endsWith("]")) trimmed = trimmed.substring(0, trimmed.length() - 1);
-
-        String[] objectStrings = trimmed.split("},\\s*\\{");
         List<String> result = new ArrayList<>();
-        for (String objStr : objectStrings) {
-            String s = objStr.trim();
-            if (!s.startsWith("{")) s = "{" + s;
-            if (!s.endsWith("}")) s += "}";
-            result.add(s);
+        int braceCount = 0;
+        StringBuilder current = new StringBuilder();
+        for (char c : jsonContent.toCharArray()) {
+            if (c == '{') braceCount++;
+            if (c == '}') braceCount--;
+            current.append(c);
+            if (braceCount == 0 && current.length() > 0) {
+                String obj = current.toString().trim();
+                if (!obj.isEmpty() && !obj.equals("[") && !obj.equals("]")) {
+                    result.add(obj);
+                }
+                current.setLength(0);
+            }
         }
         return result;
     }
@@ -116,7 +118,7 @@ public class FileUtils {
     public static String extractJsonStringValue(String json, String key) {
         String regex = "\"" + key + "\"\\s*:\\s*\"([^\"]+)\"";
         Matcher matcher = Pattern.compile(regex).matcher(json);
-        return matcher.find() ? matcher.group(1) : null;
+        return matcher.find() ? matcher.group(1).trim() : null;
     }
 
     /** Extracts int value by key from a JSON object string */
@@ -149,8 +151,9 @@ public class FileUtils {
         String fullName = extractJsonStringValue(json, "fullName");
         String id = extractJsonStringValue(json, "employeeId");
         String phone = extractJsonStringValue(json, "phoneNumber");
-        String branch = extractJsonStringValue(json, "branchId");
+        String account = extractJsonStringValue(json,"accountNumber");
         int empNum = extractJsonIntValue(json, "employeeNumber");
+        String branch = extractJsonStringValue(json, "branchId");
         String roleStr = extractJsonStringValue(json, "role");
         String username = extractJsonStringValue(json, "userName");
         String password = extractJsonStringValue(json, "password");
@@ -161,7 +164,8 @@ public class FileUtils {
         try { role = Role.valueOf(roleStr.toUpperCase()); }
         catch (Exception ex) { return null; }
 
-        Employee e = new Employee(fullName, id, phone, roleStr, empNum, branch, role, username, password);
+        Employee e = new Employee(fullName, id, phone, account, empNum, branch, role, username, password);
+
         e.setUserName(username);
         e.setPassword(password);
         return e;

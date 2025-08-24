@@ -5,6 +5,7 @@ import Server.Utils.FileUtils;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.List;
 
 // Models
 import Models.Branch;
@@ -59,13 +60,17 @@ public class ServerApp {
                 employeeService.addEmployee(currEmployee);
                 authService.register(currEmployee, currEmployee.getUserName(), currEmployee.getPassword());
             }
-
         }
+        List<Employee> all = employeeService.listAllEmployees();
+        for(Employee e : all) {
+            System.out.println("Loaded employee: " + e.getUserName() + " / " + e.getAccountNumber());
+        }
+
 
         // Load products
         for (String prodJson : FileUtils.readJsonObjectsFromFile(PRODUCTS_FILE)) {
             Product currProduct = FileUtils.parseProductFromJson(prodJson);
-            if (currProduct != null) productService.addOrUpdateProduct(currProduct);
+            if (currProduct != null) productService.addOrUpdateProduct(currProduct,0);
         }
 
         // Load customers

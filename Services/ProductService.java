@@ -18,15 +18,16 @@ public class ProductService {
         this.productList = new ArrayList<>();
     }
 
-    public void addOrUpdateProduct(Product p) {
+    public void addOrUpdateProduct(Product p, int additionalQuantity) {
         for (Product existing : productList) {
             if (existing.getProductId().equals(p.getProductId()) && existing.getBranch().equalsIgnoreCase(p.getBranch())) {
-                existing.setQuantityInStock(existing.getQuantityInStock() + p.getQuantityInStock());
+                existing.setQuantityInStock(existing.getQuantityInStock() + additionalQuantity);
                 return;
             }
         }
         productList.add(p);
     }
+
 
 //    /**
 //     * Retrieve product by ID (ignores branch) for sales operation.

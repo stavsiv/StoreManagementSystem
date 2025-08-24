@@ -22,3 +22,13 @@
 [2025-08-19 19:43:26] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P100' (qty=5) to customer 'Lucy Chain'
 [2025-08-19 19:44:36] PURCHASE: Employee 'Adi Siv' in branch 'B003' added 15 to product 'P100'
 [2025-08-21 18:22:39] Employee 'Stav Sivilya' (Role=ADMIN) added new customer 'Willian Grey' (ID=023454635)
+[2025-08-21 18:53:51] SELL: Employee 'Adi Siv' in branch 'B003' sold productId='P700' (qty=5) to customer 'Naor Didi'
+[2025-08-21 18:56:39] PURCHASE: Employee 'Adi Siv' in branch 'B003' added 10 to product 'P700'
+[2025-08-21 18:59:45] SELL: Employee 'Juliet Snow' in branch 'B002' sold productId='P300' (qty=25) to customer 'Naor Didi'
+[2025-08-21 19:01:51] PURCHASE: Employee 'Juliet Snow' in branch 'B002' added 12 to product 'P300'
+[2025-08-21 19:08:55] ADMIN 'Stav Sivilya' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-08-24 17:32] Employee 'Stav Sivilya' added customer 'Karol G' (ID=000000031)
+[2025-08-24 17:38] PURCHASE: Employee 'Widd Grey' created new product 'Neckless' (id=P900) qty=35
+[2025-08-24 18:46] Employee 'Taylor Swift' added customer 'Miley Cyrus' (ID=000000044)
+[2025-08-24 18:46] SELL: Employee 'Taylor Swift' sold product 'P100' qty=10 to customer 'Miley Cyrus'
+[2025-08-24 18:47] PURCHASE: Employee 'Taylor Swift' added 140 to product 'P100'

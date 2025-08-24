@@ -1,80 +1,107 @@
 [
-  {
-    "fullName": "John Doe",
-    "customerId": "000000001",
-    "phoneNumber": "0501234567",
-    "type": "New"
-  },
-  {
-    "fullName": "Harry Smith",
-    "customerId": "000000002",
-    "phoneNumber": "0502345678",
-    "type": "Returning"
-  },
-  {
-    "fullName": "Itay Johnson",
-    "customerId": "000000003",
-    "phoneNumber": "0503456789",
-    "type": "VIP"
-  },
-  {
-    "fullName": "Yossi Choen",
-    "customerId": "000123456",
-    "phoneNumber": "0525893454",
-    "type": "VIP"
-  },
-  {
-    "fullName": "Selena Gomez",
-    "customerId": "000000004",
-    "phoneNumber": "0506767891",
-    "type": "New"
-  },
-  {
-    "fullName": "Naor Didi",
-    "customerId": "000000012",
-    "phoneNumber": "0532222222",
-    "type": "Returning"
-  },
-  {
-    "fullName": "Or Tal",
-    "customerId": "000000019",
-    "phoneNumber": "0589999999",
-    "type": "VIP"
-  },
-  {
-    "fullName": "Itay Jo",
-    "customerId": "000000010",
-    "phoneNumber": "0541112233",
-    "type": "VIP"
-  },
-  {
-    "fullName": "Evyatar Caspi",
-    "customerId": "000000020",
-    "phoneNumber": "0545555555",
-    "type": "Returning"
-  },
-  {
-    "fullName": "Tim Bredford",
-    "customerId": "200893035",
-    "phoneNumber": "0561212121",
-    "type": "VIP"
-  },
-  {
-    "fullName": "Lucy Chain",
-    "customerId": "318400000",
-    "phoneNumber": "0543600291",
-    "type": "New"
-  },
-  {
-    "fullName": "Lucy Chain",
-    "customerId": "318500000",
-    "phoneNumber": "0543600291",
-    "type": "New"
-  },
-  {
-    "fullName": "Willian Grey",
-    "customerId": "023454635",
-    "phoneNumber": "0581111112",
-    "type": "VIP"
-  }
+{
+  "fullName": "John Doe",
+  "customerId": "000000001",
+  "phoneNumber": "0501234567",
+  "type": "New"
+}
+,
+{
+  "fullName": "Harry Smith",
+  "customerId": "000000002",
+  "phoneNumber": "0502345678",
+  "type": "Returning"
+}
+,
+{
+  "fullName": "Itay Johnson",
+  "customerId": "000000003",
+  "phoneNumber": "0503456789",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Yossi Choen",
+  "customerId": "000123456",
+  "phoneNumber": "0525893454",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Selena Gomez",
+  "customerId": "000000004",
+  "phoneNumber": "0506767891",
+  "type": "New"
+}
+,
+{
+  "fullName": "Naor Didi",
+  "customerId": "000000012",
+  "phoneNumber": "0532222222",
+  "type": "Returning"
+}
+,
+{
+  "fullName": "Or Tal",
+  "customerId": "000000019",
+  "phoneNumber": "0589999999",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Itay Jo",
+  "customerId": "000000010",
+  "phoneNumber": "0541112233",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Evyatar Caspi",
+  "customerId": "000000020",
+  "phoneNumber": "0545555555",
+  "type": "Returning"
+}
+,
+{
+  "fullName": "Tim Bredford",
+  "customerId": "200893035",
+  "phoneNumber": "0561212121",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Lucy Chain",
+  "customerId": "318400000",
+  "phoneNumber": "0543600291",
+  "type": "New"
+}
+,
+{
+  "fullName": "Lucy Chain",
+  "customerId": "318500000",
+  "phoneNumber": "0543600291",
+  "type": "New"
+}
+,
+{
+  "fullName": "Willian Grey",
+  "customerId": "023454635",
+  "phoneNumber": "0581111112",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Karol G",
+  "customerId": "000000031",
+  "phoneNumber": "0578888888",
+  "type": "New"
+}
+,
+{
+  "fullName": "Miley Cyrus",
+  "customerId": "000000044",
+  "phoneNumber": "0534455661",
+  "type": "New"
+}
+
 ]

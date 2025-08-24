@@ -1,90 +1,110 @@
 [
-  {
-    "productId": "P100",
-    "productName": "Jeans",
-    "category": "Clothing",
-    "price": 200.00,
-    "quantityInStock": 100,
-    "branchId": "B001"
-  },
-  {
-    "productId": "P100",
-    "productName": "Jeans",
-    "category": "Clothing",
-    "price": 200.00,
-    "quantityInStock": 100,
-    "branchId": "B003"
-  },
-  {
-    "productId": "P200",
-    "productName": "Shirt",
-    "category": "Clothing",
-    "price": 100.00,
-    "quantityInStock": 80,
-    "branchId": "B001"
-  },
-  {
-    "productId": "P200",
-    "productName": "Shirt",
-    "category": "Clothing",
-    "price": 100.00,
-    "quantityInStock": 80,
-    "branchId": "B002"
-  },
-  {
-    "productId": "P300",
-    "productName": "Hat",
-    "category": "Accessories",
-    "price": 50.00,
-    "quantityInStock": 112,
-    "branchId": "B002"
-  },
-  {
-    "productId": "P400",
-    "productName": "Jacket",
-    "category": "Clothing",
-    "price": 400.00,
-    "quantityInStock": 50,
-    "branchId": "B001"
-  },
-  {
-    "productId": "P500",
-    "productName": "Sneakers",
-    "category": "Footwear",
-    "price": 300.00,
-    "quantityInStock": 50,
-    "branchId": "B001"
-  },
-  {
-    "productId": "P500",
-    "productName": "Sneakers",
-    "category": "Footwear",
-    "price": 300.00,
-    "quantityInStock": 75,
-    "branchId": "B002"
-  },
-  {
-    "productId": "P600",
-    "productName": "Sunglasses",
-    "category": "Accessories",
-    "price": 150.00,
-    "quantityInStock": 15,
-    "branchId": "B001"
-  },
-  {
-    "productId": "P400",
-    "productName": "Jacket",
-    "category": "Clothing",
-    "price": 400.00,
-    "quantityInStock": 90,
-    "branchId": "B003"
-  },
-  {
-    "productId": "P700",
-    "productName": "Earings",
-    "category": "Accessorise",
-    "price": 150.00,
-    "quantityInStock": 45,
-    "branchId": "B003"
-  }
+{
+  "productId": "P100",
+  "productName": "Jeans",
+  "category": "Clothing",
+  "price": 200.00,
+  "quantityInStock": 185,
+  "branchId": "B001"
+}
+,
+{
+  "productId": "P100",
+  "productName": "Jeans",
+  "category": "Clothing",
+  "price": 200.00,
+  "quantityInStock": 100,
+  "branchId": "B003"
+}
+,
+{
+  "productId": "P200",
+  "productName": "Shirt",
+  "category": "Clothing",
+  "price": 100.00,
+  "quantityInStock": 80,
+  "branchId": "B001"
+}
+,
+{
+  "productId": "P200",
+  "productName": "Shirt",
+  "category": "Clothing",
+  "price": 100.00,
+  "quantityInStock": 80,
+  "branchId": "B002"
+}
+,
+{
+  "productId": "P300",
+  "productName": "Hat",
+  "category": "Accessories",
+  "price": 50.00,
+  "quantityInStock": 112,
+  "branchId": "B002"
+}
+,
+{
+  "productId": "P400",
+  "productName": "Jacket",
+  "category": "Clothing",
+  "price": 400.00,
+  "quantityInStock": 50,
+  "branchId": "B001"
+}
+,
+{
+  "productId": "P500",
+  "productName": "Sneakers",
+  "category": "Footwear",
+  "price": 300.00,
+  "quantityInStock": 50,
+  "branchId": "B001"
+}
+,
+{
+  "productId": "P500",
+  "productName": "Sneakers",
+  "category": "Footwear",
+  "price": 300.00,
+  "quantityInStock": 75,
+  "branchId": "B002"
+}
+,
+{
+  "productId": "P600",
+  "productName": "Sunglasses",
+  "category": "Accessories",
+  "price": 150.00,
+  "quantityInStock": 15,
+  "branchId": "B001"
+}
+,
+{
+  "productId": "P400",
+  "productName": "Jacket",
+  "category": "Clothing",
+  "price": 400.00,
+  "quantityInStock": 90,
+  "branchId": "B003"
+}
+,
+{
+  "productId": "P700",
+  "productName": "Earings",
+  "category": "Accessorise",
+  "price": 150.00,
+  "quantityInStock": 45,
+  "branchId": "B003"
+}
+,
+{
+  "productId": "P100",
+  "productName": "Jeans",
+  "category": "Clothing",
+  "price": 200.00,
+  "quantityInStock": 95,
+  "branchId": "B006"
+}
+
 ]

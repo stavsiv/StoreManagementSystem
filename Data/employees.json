@@ -1,134 +1,170 @@
 [
-  {
-    "fullName": "David Admin",
-    "employeeId": "000000002",
-    "phoneNumber": "0507777777",
-    "accountNumber": "ADMIN",
-    "employeeNumber": 2000,
-    "branchId": "HQ01",
-    "role": "ADMIN",
-    "userName": "davidA",
-    "password": "davidadmin"
-  },
-  {
-    "fullName": "Ella Manager",
-    "employeeId": "000000101",
-    "phoneNumber": "0508888888",
-    "accountNumber": "SHIFT_MANAGER",
-    "employeeNumber": 2001,
-    "branchId": "B001",
-    "role": "SHIFT_MANAGER",
-    "userName": "ellaM",
-    "password": "ellapass"
-  },
-  {
-    "fullName": "Frank Cashier",
-    "employeeId": "000000201",
-    "phoneNumber": "0505555555",
-    "accountNumber": "CASHIER",
-    "employeeNumber": 2002,
-    "branchId": "B002",
-    "role": "CASHIER",
-    "userName": "frankC",
-    "password": "frank123"
-  },
-  {
-    "fullName": "Grace Seller",
-    "employeeId": "000000301",
-    "phoneNumber": "0506666666",
-    "accountNumber": "SELLER",
-    "employeeNumber": 2003,
-    "branchId": "B003",
-    "role": "SELLER",
-    "userName": "graceS",
-    "password": "grace123"
-  },
-  {
-    "fullName": "Stav Sivilya",
-    "employeeId": "000002334",
-    "phoneNumber": "0581111111",
-    "accountNumber": "ADMIN",
-    "employeeNumber": 23446,
-    "branchId": "B001",
-    "role": "ADMIN",
-    "userName": "stav",
-    "password": "12345"
-  },
-  {
-    "fullName": "Aviv",
-    "employeeId": "000003455",
-    "phoneNumber": "0347934934",
-    "accountNumber": "CASHIER",
-    "employeeNumber": 384348,
-    "branchId": "B003",
-    "role": "CASHIER",
-    "userName": "aviv",
-    "password": "123456"
-  },
-  {
-    "fullName": "Adi Siv",
-    "employeeId": "300000000",
-    "phoneNumber": "0521111111",
-    "accountNumber": "CASHIER",
-    "employeeNumber": 2004,
-    "branchId": "B003",
-    "role": "CASHIER",
-    "userName": "adisiv",
-    "password": "67899"
-  },
-  {
-    "fullName": "Lidor Stamker",
-    "employeeId": "000000004",
-    "phoneNumber": "0571111111",
-    "accountNumber": "SELLER",
-    "employeeNumber": 2005,
-    "branchId": "B003",
-    "role": "SELLER",
-    "userName": "lidorst",
-    "password": "67877"
-  },
-  {
-    "fullName": "Juliet Snow",
-    "employeeId": "102030444",
-    "phoneNumber": "0552222221",
-    "accountNumber": "SHIFT_MANAGER",
-    "employeeNumber": 30202,
-    "branchId": "B002",
-    "role": "SHIFT_MANAGER",
-    "userName": "julis",
-    "password": "pass123"
-  },
-  {
-    "fullName": "Moshe Shamir",
-    "employeeId": "109737578",
-    "phoneNumber": "0529155234",
-    "accountNumber": "SHIFT_MANAGER",
-    "employeeNumber": 212443,
-    "branchId": "B004",
-    "role": "SHIFT_MANAGER",
-    "userName": "moshell",
-    "password": "239584"
-  },
-  {
-    "fullName": "Osher Cohen",
-    "employeeId": "000000018",
-    "phoneNumber": "0573012922",
-    "accountNumber": "CASHIER",
-    "employeeNumber": 123123,
-    "branchId": "B005",
-    "role": "CASHIER",
-    "userName": "oshi",
-    "password": "223344"
-  },
-  {
-    "fullName": "Baily Nune",
-    "employeeId": "089044565",
-    "phoneNumber": "0571212333",
-    "accountNumber": "Bank-455",
-    "employeeNumber": 495485,
-    "branchId": "BOO2",
-    "role": "ADMIN",
-    "userName": "Bilin",
-    "password": "45666"
-  }
+{
+  "fullName": "David Admin",
+  "employeeId": "000000002",
+  "phoneNumber": "0507777777",
+  "accountNumber": "Bank-100",
+  "employeeNumber": 2000,
+  "branchId": "HQ01",
+  "role": "ADMIN",
+  "userName": "davidA",
+  "password": "davidadmin"
+}
+,
+{
+  "fullName": "Ella Manager",
+  "employeeId": "000000101",
+  "phoneNumber": "0508888888",
+  "accountNumber": "Bank-200",
+  "employeeNumber": 2001,
+  "branchId": "B001",
+  "role": "SHIFT_MANAGER",
+  "userName": "ellaM",
+  "password": "ellapass"
+}
+,
+{
+  "fullName": "Frank Cashier",
+  "employeeId": "000000201",
+  "phoneNumber": "0505555555",
+  "accountNumber": "Bank-222",
+  "employeeNumber": 2002,
+  "branchId": "B002",
+  "role": "CASHIER",
+  "userName": "frankC",
+  "password": "frank123"
+}
+,
+{
+  "fullName": "Grace Seller",
+  "employeeId": "000000301",
+  "phoneNumber": "0506666666",
+  "accountNumber": "Bank-211",
+  "employeeNumber": 2003,
+  "branchId": "B003",
+  "role": "SELLER",
+  "userName": "graceS",
+  "password": "grace123"
+}
+,
+{
+  "fullName": "Stav Sivilya",
+  "employeeId": "000002334",
+  "phoneNumber": "0581111111",
+  "accountNumber": "Bank-555",
+  "employeeNumber": 23446,
+  "branchId": "B001",
+  "role": "ADMIN",
+  "userName": "stav",
+  "password": "12345"
+}
+,
+{
+  "fullName": "Aviv Hanuun",
+  "employeeId": "000003455",
+  "phoneNumber": "0347934934",
+  "accountNumber": "Bank-111",
+  "employeeNumber": 384348,
+  "branchId": "B003",
+  "role": "CASHIER",
+  "userName": "aviv",
+  "password": "123456"
+}
+,
+{
+  "fullName": "Adi Siv",
+  "employeeId": "300000000",
+  "phoneNumber": "0521111111",
+  "accountNumber": "Bank-914",
+  "employeeNumber": 2004,
+  "branchId": "B003",
+  "role": "CASHIER",
+  "userName": "adisiv",
+  "password": "67899"
+}
+,
+{
+  "fullName": "Lidor Stamker",
+  "employeeId": "000000004",
+  "phoneNumber": "0571111111",
+  "accountNumber": "Bank-850",
+  "employeeNumber": 2005,
+  "branchId": "B003",
+  "role": "SELLER",
+  "userName": "lidorst",
+  "password": "67877"
+}
+,
+{
+  "fullName": "Juliet Snow",
+  "employeeId": "102030444",
+  "phoneNumber": "0552222221",
+  "accountNumber": "Bank-123",
+  "employeeNumber": 30202,
+  "branchId": "B002",
+  "role": "SHIFT_MANAGER",
+  "userName": "julis",
+  "password": "pass123"
+}
+,
+{
+  "fullName": "Moshe Shamir",
+  "employeeId": "109737578",
+  "phoneNumber": "0529155234",
+  "accountNumber": "Bank-999",
+  "employeeNumber": 212443,
+  "branchId": "B004",
+  "role": "SHIFT_MANAGER",
+  "userName": "moshell",
+  "password": "239584"
+}
+,
+{
+  "fullName": "Osher Cohen",
+  "employeeId": "000000018",
+  "phoneNumber": "0573012922",
+  "accountNumber": "Bank-123",
+  "employeeNumber": 123123,
+  "branchId": "B005",
+  "role": "CASHIER",
+  "userName": "oshi",
+  "password": "223344"
+}
+,
+{
+  "fullName": "Baily Nune",
+  "employeeId": "089044565",
+  "phoneNumber": "0571212333",
+  "accountNumber": "Bank-888",
+  "employeeNumber": 495485,
+  "branchId": "BOO2",
+  "role": "ADMIN",
+  "userName": "Bilin",
+  "password": "45666"
+}
+,
+{
+  "fullName": "Widd Grey",
+  "employeeId": "000000030",
+  "phoneNumber": "0591111111",
+  "accountNumber": "Bank-850",
+  "employeeNumber": 454324,
+  "branchId": "B006",
+  "role": "CASHIER",
+  "userName": "widg",
+  "password": "pass1234"
+}
+,
+{
+  "fullName": "Taylor Swift",
+  "employeeId": "000000033",
+  "phoneNumber": "0561122334",
+  "accountNumber": "Bank-100",
+  "employeeNumber": 463453,
+  "branchId": "B001",
+  "role": "SELLER",
+  "userName": "tais",
+  "password": "pass5678"
+}
+
 ]
