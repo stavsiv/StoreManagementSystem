@@ -1,4 +1,5 @@
 package Server;
+import Exceptions.CustomExceptions;
 import Server.Utils.FileUtils;
 
 // Standard library
@@ -43,7 +44,7 @@ public class ServerApp {
     public static final String PRODUCTS_FILE = "Data/products.json";
     public static final String CUSTOMERS_FILE = "Data/customers.json";
 
-    public ServerApp(int port) {
+    public ServerApp(int port) throws CustomExceptions.BranchException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException, CustomExceptions.ProductException {
         this.port = port;
 
 
@@ -61,10 +62,10 @@ public class ServerApp {
                 authService.register(currEmployee, currEmployee.getUserName(), currEmployee.getPassword());
             }
         }
-        List<Employee> all = employeeService.listAllEmployees();
-        for(Employee e : all) {
-            System.out.println("Loaded employee: " + e.getUserName() + " / " + e.getAccountNumber());
-        }
+//        List<Employee> all = employeeService.listAllEmployees();
+//        for(Employee e : all) {
+//            System.out.println("Loaded employee: " + e.getUserName() + " / " + e.getAccountNumber());
+//        }
 
 
         // Load products
@@ -92,7 +93,7 @@ public class ServerApp {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
-                ClientHandler handler = new ClientHandler(clientSocket, authService, employeeService, productService, customerService, branchService,saleService,chatService);
+                ClientHandler handler = new ClientHandler(clientSocket, authService, employeeService, productService, customerService, saleService,chatService);
 
                 new Thread(handler).start();
             }
@@ -102,7 +103,7 @@ public class ServerApp {
         }
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws CustomExceptions.BranchException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException, CustomExceptions.ProductException {
         ServerApp server = new ServerApp(3000);
         server.start();
     }

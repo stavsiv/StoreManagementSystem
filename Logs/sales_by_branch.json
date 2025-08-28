@@ -1,20 +1,11 @@
 {
-  "B001": [
-    {
-      "productId": "P100",
-      "productName": "Jeans",
-      "quantity": 5,
-      "finalPrice": 700.0,
-      "saleTime": "2025-08-24 19:02:11"
-    }
-  ],
   "B006": [
     {
       "productId": "P100",
       "productName": "Jeans",
       "quantity": 5,
-      "finalPrice": 700.0,
-      "saleTime": "2025-08-24 19:04:24"
+      "finalPrice": 1000.0,
+      "saleTime": "2025-08-28 12:37:16"
     }
   ]
 }

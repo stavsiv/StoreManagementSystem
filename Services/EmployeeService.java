@@ -1,54 +1,30 @@
 package Services;
 
+import Exceptions.CustomExceptions;
 import Models.Employee;
 import java.util.ArrayList;
 import java.util.List;
 
 public class EmployeeService {
 
-    /**
-     * This class manages the business logic for handling employees (create, update, retrieve, and delete).
-     */
     private List<Employee> employees;
 
-    // Constructor
     public EmployeeService() {
         this.employees = new ArrayList<>();
     }
 
-    public boolean addEmployee(Employee employee) {
-        if (employee.getUserName() == null || employee.getUserName().isEmpty()) return false;
-        if (employee.getFullName() == null || employee.getFullName().isEmpty()) return false;
+    public boolean addEmployee(Employee employee) throws CustomExceptions.EmployeeException {
         for (Employee emp : employees) {
-            if (emp.getUserName().equals(employee.getUserName())) return false;
-            if (emp.getEmployeeId().equals(employee.getEmployeeId())) return false;
-            if (emp.getEmployeeNumber() == employee.getEmployeeNumber()) return false; // compare of int
-
+            if (emp.getUserName().equals(employee.getUserName()))
+                throw new CustomExceptions.InvalidUsernameException("Username already exists: " + employee.getUserName());
+            if (emp.getEmployeeId().equals(employee.getEmployeeId()))
+                throw new CustomExceptions.InvalidEmployeeIdException("Employee ID already exists: " + employee.getEmployeeId());
+            if (emp.getEmployeeNumber() == employee.getEmployeeNumber())
+                throw new CustomExceptions.InvalidEmployeeNumberException("Employee number already exists: " + employee.getEmployeeNumber());
         }
         employees.add(employee);
         return true;
     }
-
-//    public Employee getEmployeeById(String id) {
-//        for (Employee e : employees) {
-//            if (e.getEmployeeId().equals(id)) return e;
-//        }
-//        return null;
-//    }
-
-//    public boolean updateEmployee(Employee updated) {
-//        for (int i = 0; i < employees.size(); i++) {
-//            if (employees.get(i).getEmployeeId().equals(updated.getEmployeeId())) {
-//                employees.set(i, updated);
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
-
-//    public boolean removeEmployee(String id) {
-//        return employees.removeIf(e -> e.getEmployeeId().equals(id));
-//    }
 
     public List<Employee> listAllEmployees() {
         return new ArrayList<>(employees);

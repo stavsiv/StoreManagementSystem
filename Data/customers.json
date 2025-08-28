@@ -103,5 +103,33 @@
   "phoneNumber": "0534455661",
   "type": "New"
 }
+,
+{
+  "fullName": "Tay Jones",
+  "customerId": "318430000",
+  "phoneNumber": "0591122334",
+  "type": "New"
+}
+,
+{
+  "fullName": "Chris Morena",
+  "customerId": "318430900",
+  "phoneNumber": "0523344551",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Shay Tamari",
+  "customerId": "318430709",
+  "phoneNumber": "0572233445",
+  "type": "New"
+}
+,
+{
+  "fullName": "Peer Tasi",
+  "customerId": "000000045",
+  "phoneNumber": "0541122334",
+  "type": "New"
+}
 
 ]

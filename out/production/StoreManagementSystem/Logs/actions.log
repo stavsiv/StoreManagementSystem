@@ -32,3 +32,13 @@
 [2025-08-24 18:46] Employee 'Taylor Swift' added customer 'Miley Cyrus' (ID=000000044)
 [2025-08-24 18:46] SELL: Employee 'Taylor Swift' sold product 'P100' qty=10 to customer 'Miley Cyrus'
 [2025-08-24 18:47] PURCHASE: Employee 'Taylor Swift' added 140 to product 'P100'
+[2025-08-24 19:01] PURCHASE: Employee 'Taylor Swift' added 100 to product 'P100'
+[2025-08-24 19:02] SELL: Employee 'Taylor Swift' sold product 'P100' qty=5 to customer 'Itay Johnson'
+[2025-08-24 19:04] PURCHASE: Employee 'Widd Grey' created new product 'Jeans' (id=P100) qty=100
+[2025-08-24 19:04] SELL: Employee 'Widd Grey' sold product 'P100' qty=5 to customer 'Itay Johnson'
+[2025-08-27 19:29] Employee added: Justin Bieber (ID=318400000, Branch=B006, Role=SELLER)
+[2025-08-27 19:31] Employee added: Justin Bieber (ID=318400033, Branch=B006, Role=SELLER)
+[2025-08-28 11:05] Customer added: Tay Jones (ID=318430000, Type=NEW)
+[2025-08-28 11:08] Sales logs viewed by ADMIN Stav Sivilya
+[2025-08-28 11:12] Customer added: Chris Morena (ID=318430900, Type=VIP)
+[2025-08-28 12:07] Customer added: Shay Tamari (ID=318430709, Type=NEW)

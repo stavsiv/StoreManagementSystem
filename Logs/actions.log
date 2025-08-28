@@ -36,3 +36,15 @@
 [2025-08-24 19:02] SELL: Employee 'Taylor Swift' sold product 'P100' qty=5 to customer 'Itay Johnson'
 [2025-08-24 19:04] PURCHASE: Employee 'Widd Grey' created new product 'Jeans' (id=P100) qty=100
 [2025-08-24 19:04] SELL: Employee 'Widd Grey' sold product 'P100' qty=5 to customer 'Itay Johnson'
+[2025-08-27 19:29] Employee added: Justin Bieber (ID=318400000, Branch=B006, Role=SELLER)
+[2025-08-27 19:31] Employee added: Justin Bieber (ID=318400033, Branch=B006, Role=SELLER)
+[2025-08-28 11:05] Customer added: Tay Jones (ID=318430000, Type=NEW)
+[2025-08-28 11:08] Sales logs viewed by ADMIN Stav Sivilya
+[2025-08-28 11:12] Customer added: Chris Morena (ID=318430900, Type=VIP)
+[2025-08-28 12:07] Customer added: Shay Tamari (ID=318430709, Type=NEW)
+[2025-08-28 12:35] Customer added: Peer Tasi (ID=000000045, Type=NEW)
+[2025-08-28 12:37] SELL: Employee 'Justin Bieber' sold product 'P100' qty=5 to customer 'Peer Tasi'
+[2025-08-28 12:40] PURCHASE: Employee 'Justin Bieber' created new product 'Rings' (id=P900) qty=10
+[2025-08-28 12:42] Sales logs saved by ADMIN Stav Sivilya
+[2025-08-28 12:42] Sales logs viewed by ADMIN Stav Sivilya
+[2025-08-28 12:42] ADMIN 'Stav Sivilya' converted logs to Word doc at 'logs/sales_report.doc'.

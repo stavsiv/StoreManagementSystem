@@ -1,22 +1,16 @@
 package Services;
 
+import Exceptions.CustomExceptions;
 import Models.Customer;
 import Models.Product;
-
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 public class SaleService {
 
-    /**
-     * Sell a product to a customer.
-     * Deducts stock and records sale.
-     */
-
     private ProductService productService;
     private static List<SaleRecord> allSales = new ArrayList<>();
-
 
     public SaleService(ProductService productService) {
         if (productService == null) {
@@ -25,33 +19,26 @@ public class SaleService {
         this.productService = productService;
     }
 
-    public double sellProduct(Customer customer, String productId, String branchId, int quantity) {
+    public double sellProduct(Customer customer, String productId, String branchId, int quantity) throws CustomExceptions.ProductException {
         Product product = productService.getProductByIdAndBranch(productId, branchId);
         if (product == null)
-            throw new IllegalArgumentException("Product not found in branch " + branchId);
+            throw new CustomExceptions.InvalidProductIdException("Product not found in branch " + branchId);
 
         if (quantity <= 0)
-            throw new IllegalArgumentException("Quantity must be positive.");
+            throw new CustomExceptions.NegativeProductQuantityException("Quantity must be positive.");
         if (product.getQuantityInStock() < quantity)
-            throw new IllegalArgumentException("Not enough stock for product " + productId);
+            throw new CustomExceptions.NegativeProductQuantityException("Not enough stock for product " + productId);
 
         double totalPrice = product.getPrice() * quantity;
         double finalPrice = customer.calculateFinalPrice(totalPrice);
 
         product.setQuantityInStock(product.getQuantityInStock() - quantity);
-        allSales.add(new SaleRecord(
-                product.getProductId(),
-                product.getProductName(),
-                product.getCategory(),
-                product.getBranch(),
-                quantity,
-                finalPrice,
-                LocalDateTime.now()
-        ));
+
+        allSales.add(new SaleRecord(product.getProductId(), product.getProductName(), product.getCategory(),
+                product.getBranch(), quantity, finalPrice, LocalDateTime.now()));
 
         return finalPrice;
     }
-
 
     public static List<SaleRecord> getAllSales() {
         return new ArrayList<>(allSales);

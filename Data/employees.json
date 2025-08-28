@@ -166,5 +166,17 @@
   "userName": "tais",
   "password": "pass5678"
 }
+,
+{
+  "fullName": "Justin Bieber",
+  "employeeId": "318400000",
+  "phoneNumber": "0541122334",
+  "accountNumber": "Bank-900",
+  "employeeNumber": 232324,
+  "branchId": "B006",
+  "role": "SELLER",
+  "userName": "justbieber",
+  "password": "pass1234"
+}
 
 ]

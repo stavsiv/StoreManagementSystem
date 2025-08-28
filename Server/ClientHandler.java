@@ -1,5 +1,6 @@
 package Server;
 
+import Exceptions.CustomExceptions;
 import Server.Utils.FileUtils;
 import Models.*;
 import Services.*;
@@ -11,6 +12,7 @@ import java.util.*;
 
 /**
  * Handles client sessions and commands in the Store Management System.
+ * Improved exception handling for more robust operations.
  */
 public class ClientHandler implements Runnable {
 
@@ -30,7 +32,7 @@ public class ClientHandler implements Runnable {
 
     public ClientHandler(Socket socket, AuthService authService, EmployeeService employeeService,
                          ProductService productService, CustomerService customerService,
-                         BranchService branchService, SaleService saleService, ChatService chatService) {
+                         SaleService saleService, ChatService chatService) {
         this.clientSocket = socket;
         this.authService = authService;
         this.employeeService = employeeService;
@@ -51,10 +53,14 @@ public class ClientHandler implements Runnable {
                 if (!handleCommands(in, out)) break;
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("IO ERROR: " + e.getMessage());
         } finally {
             if (currentUsername != null) authService.logout(currentUsername);
-            try { clientSocket.close(); } catch (IOException ex) { ex.printStackTrace(); }
+            try {
+                clientSocket.close();
+            } catch (IOException ex) {
+                ex.printStackTrace();
+            }
             System.out.println("Client disconnected.");
         }
     }
@@ -88,22 +94,23 @@ public class ClientHandler implements Runnable {
         String password = in.readLine();
         if (password == null) return false;
 
-        Employee loggedInEmployee = authService.login(username.trim(), password.trim());
-        if (loggedInEmployee == null) {
-            out.println("ERROR: Invalid credentials or user already logged in. Closing connection...");
-            System.out.println("Employees loaded:");
-            employeeService.listAllEmployees().forEach(e ->
-                    System.out.println(" -> " + e.getUserName() + " / " + e.getPassword())
-            );
+        try {
+            Employee loggedInEmployee = authService.login(username.trim(), password.trim());
+            if (loggedInEmployee == null) {
+                out.println("ERROR: Invalid credentials or user already logged in. Closing connection...");
+                return false;
+            }
 
+            this.loggedInEmployee = loggedInEmployee;
+            this.currentUsername = username;
+            out.println("Login successful! Hello, " + loggedInEmployee.getFullName() +
+                    " (Role: " + loggedInEmployee.getRole() + " ,Branch: " + loggedInEmployee.getBranchId()+ ")");
+            return true;
+
+        } catch (CustomExceptions.InvalidPasswordException | CustomExceptions.InvalidUsernameException e) {
+            out.println("ERROR: " + e.getMessage());
             return false;
         }
-
-        this.loggedInEmployee = loggedInEmployee;
-        this.currentUsername = username;
-        out.println("Login successful! Hello, " + loggedInEmployee.getFullName() +
-                " (Role: " + loggedInEmployee.getRole() + ")");
-        return true;
     }
 
     // ------------------ Command Handling ------------------
@@ -117,14 +124,22 @@ public class ClientHandler implements Runnable {
                 out.println("Goodbye!");
                 return false;
             }
-            String response = handleCommand(line);
-            out.println(response);
-            if (response.contains("Returning to login screen")) return true; // back to login
+
+            try {
+                String response = handleCommand(line);
+                out.println(response);
+                if (response.contains("Returning to login screen")) return true; // back to login
+            } catch (CustomExceptions.ProductException | CustomExceptions.EmployeeException |
+                     CustomExceptions.CustomerException e) {
+                out.println("ERROR: " + e.getMessage());
+            } catch (Exception e) {
+                out.println("ERROR: Unexpected error occurred - " + e.getMessage());
+            }
         }
         return false;
     }
 
-    private String handleCommand(String line) {
+    private String handleCommand(String line) throws CustomExceptions.ProductException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException {
         if (line.isEmpty()) return "";
 
         if (line.toUpperCase().startsWith("SEND_MSG")) return sendMessageCommand(line);
@@ -192,13 +207,6 @@ public class ClientHandler implements Runnable {
         return sb.toString();
     }
 
-    /**
-     * Validates that the employee has the required role and that the command has enough parameters.
-     * @param requiredRole The role required to execute the command (null אם לא נדרשת הרשאה).
-     * @param parts        המערך של הפקודה שחולק לרכיבים.
-     * @param minParams    המספר המינימלי של פרמטרים דרושים כולל שם הפקודה.
-     * @return null אם הכל תקין, או מחרוזת שגיאה אם יש בעיה.
-     */
     private String validateCommand(Role requiredRole, String[] parts, int minParams) {
         if (requiredRole != null && loggedInEmployee.getRole() != requiredRole) {
             return "ERROR: Only " + requiredRole + " can execute this command.";
@@ -236,35 +244,34 @@ public class ClientHandler implements Runnable {
 
             Employee newEmp = new Employee(fullName, id, phone, bankAcc, empNum, branch, newEmpRole, newUsername, newPassword);
 
-            if (!employeeService.addEmployee(newEmp)) {
-                return "ERROR: Employee with same username, ID or number already exists.";
-            }
-
+            employeeService.addEmployee(newEmp);
             authService.register(newEmp, newUsername, newPassword);
 
             FileUtils.saveToFile(ServerApp.EMPLOYEES_FILE, employeeService.listAllEmployees(), e -> String.format(
                     """
-                    {
-                      "fullName": "%s",
-                      "employeeId": "%s",
-                      "phoneNumber": "%s",
-                      "accountNumber": "%s",
-                      "employeeNumber": %d,
-                      "branchId": "%s",
-                      "role": "%s",
-                      "userName": "%s",
-                      "password": "%s"
-                    }
-                    """,
+                            {
+                              "fullName": "%s",
+                              "employeeId": "%s",
+                              "phoneNumber": "%s",
+                              "accountNumber": "%s",
+                              "employeeNumber": %d,
+                              "branchId": "%s",
+                              "role": "%s",
+                              "userName": "%s",
+                              "password": "%s"
+                            }
+                            """,
                     e.getFullName(), e.getEmployeeId(), e.getPhoneNumber(), e.getAccountNumber(),
                     e.getEmployeeNumber(), e.getBranchId(), e.getRole(), e.getUserName(), e.getPassword()
             ));
 
-            return String.format("Employee successfully added: Name=%s, Id=%s, Branch=%s, Role=%s",
-                    newEmp.getFullName(), newEmp.getEmployeeId(), newEmp.getBranchId(), newEmp.getRole());
+            logAction(String.format("Employee added: %s (ID=%s, Branch=%s, Role=%s)", fullName, id, branch, newEmpRole));
+            return "Employee successfully added: " + fullName;
 
+        } catch (CustomExceptions.EmployeeException e) {
+            return "ERROR: " + e.getMessage();
         } catch (Exception ex) {
-            return "ERROR: Invalid input.";
+            return "ERROR: Invalid input format.";
         }
     }
 
@@ -273,90 +280,104 @@ public class ClientHandler implements Runnable {
         String validationError = validateCommand(null, parts, 4);
         if (validationError != null) return validationError;
 
+        try {
+            String productId = parts[1];
+            int qty = Integer.parseInt(parts[2]);
+            String customerId = parts[3];
 
-        String productId = parts[1];
-        int qty;
-        try { qty = Integer.parseInt(parts[2]); } catch (NumberFormatException e) { return "ERROR: quantity must be an integer."; }
+            Customer customer = customerService.getCustomerById(customerId);
+            if (customer == null) return "ERROR: No customer found with ID " + customerId;
 
-        String customerId = parts[3];
-        Customer customer = customerService.getCustomerById(customerId);
-        if (customer == null) return "ERROR: No customer found with ID " + customerId;
+            Product product = productService.getProductByIdAndBranch(productId, loggedInEmployee.getBranchId());
+            if (product == null) return "ERROR: Product not found in your branch.";
 
-        Product product = productService.getProductByIdAndBranch(productId, loggedInEmployee.getBranchId());
-        if (product == null) return "ERROR: Product not found in your branch.";
+            double finalPrice = saleService.sellProduct(customer, productId, loggedInEmployee.getBranchId(), qty);
+            FileUtils.saveToFile(ServerApp.PRODUCTS_FILE, productService.getAllProducts(), p -> String.format(
+                    """
+                            {
+                              "productId": "%s",
+                              "productName": "%s",
+                              "category": "%s",
+                              "price": %.2f,
+                              "quantityInStock": %d,
+                              "branchId": "%s"
+                            }
+                            """, p.getProductId(), p.getProductName(), p.getCategory(), p.getPrice(), p.getQuantityInStock(), p.getBranch()
+            ));
 
-        double finalPrice = saleService.sellProduct(customer, productId, loggedInEmployee.getBranchId(), qty);
-        FileUtils.saveToFile(ServerApp.PRODUCTS_FILE, productService.getAllProducts(), p -> String.format(
-                """
-                {
-                  "productId": "%s",
-                  "productName": "%s",
-                  "category": "%s",
-                  "price": %.2f,
-                  "quantityInStock": %d,
-                  "branchId": "%s"
-                }
-                """, p.getProductId(), p.getProductName(), p.getCategory(), p.getPrice(), p.getQuantityInStock(), p.getBranch()
-        ));
+            logAction(String.format("SELL: Employee '%s' sold product '%s' qty=%d to customer '%s'",
+                    loggedInEmployee.getFullName(), productId, qty, customer.getCustomerName()));
 
-        logAction(String.format("SELL: Employee '%s' sold product '%s' qty=%d to customer '%s'",
-                loggedInEmployee.getFullName(), productId, qty, customer.getCustomerName()));
+            return String.format("Transaction completed! Sold %d units of '%s' to %s. Final price: %.2f",
+                    qty, product.getProductName(), customer.getCustomerName(), finalPrice);
 
-        return String.format("Transaction completed! Sold %d units of '%s' to %s. Final price: %.2f",
-                qty, product.getProductName(), customer.getCustomerName(), finalPrice);
+        } catch (NumberFormatException e) {
+            return "ERROR: Quantity must be an integer.";
+        } catch (CustomExceptions.ProductException e) {
+            return "ERROR: " + e.getMessage();
+        }
     }
 
-    private String purchaseProductCommand(String[] parts) {
+    private String purchaseProductCommand(String[] parts) throws CustomExceptions.ProductException {
         String validationError = validateCommand(null, parts, 7);
         if (validationError != null) return validationError;
 
-        String productId = parts[1];
-        String productName = parts[2];
-        String category = parts[3];
-        double price;
-        int quantity;
-        String branch = parts[6];
+        try {
+            String productId = parts[1];
+            String productName = parts[2];
+            String category = parts[3];
+            double price = Double.parseDouble(parts[4]);
+            int quantity = Integer.parseInt(parts[5]);
+            String branch = parts[6];
 
-        try { price = Double.parseDouble(parts[4]); }
-        catch (NumberFormatException e) { return "ERROR: price must be a number."; }
+            if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch))
+                return "ERROR: You can't purchase products for a different branch.";
 
-        try { quantity = Integer.parseInt(parts[5]); }
-        catch (NumberFormatException e) { return "ERROR: quantity must be an integer."; }
-
-        if (!loggedInEmployee.getBranchId().equalsIgnoreCase(branch))
-            return "ERROR: You can't purchase products for a different branch.";
-
-        Product existing = productService.getProductByIdAndBranch(productId, branch);
-
-        if (existing != null) {
-            productService.addOrUpdateProduct(existing, quantity);
-            logAction(String.format("PURCHASE: Employee '%s' added %d to product '%s'",
-                    loggedInEmployee.getFullName(), quantity, productId));
-            return "Product stock updated. New total: " + existing.getQuantityInStock();
-        } else {
-            Product newProduct = new Product(productId, productName, category, price, quantity, branch);
-            productService.addOrUpdateProduct(newProduct, 0); // כמות אפס כי חדש
-            logAction(String.format("PURCHASE: Employee '%s' created new product '%s' (id=%s) qty=%d",
-                    loggedInEmployee.getFullName(), productName, productId, quantity));
-            return "Product created: " + productName + " (ID=" + productId + ") with stock " + quantity;
+            Product existing = productService.getProductByIdAndBranch(productId, branch);
+            if (existing != null) {
+                productService.addOrUpdateProduct(existing, quantity);
+                logAction(String.format("PURCHASE: Employee '%s' added %d to product '%s'",
+                        loggedInEmployee.getFullName(), quantity, productId));
+                return "Product stock updated. New total: " + existing.getQuantityInStock();
+            } else {
+                Product newProduct = new Product(productId, productName, category, price, quantity, branch);
+                productService.addOrUpdateProduct(newProduct, 0);
+                logAction(String.format("PURCHASE: Employee '%s' created new product '%s' (id=%s) qty=%d",
+                        loggedInEmployee.getFullName(), productName, productId, quantity));
+                return "Product created: " + productName + " (ID=" + productId + ") with stock " + quantity;
+            }
+        } catch (NumberFormatException e) {
+            return "ERROR: Price or Quantity invalid format.";
         }
     }
 
     // ------------------ Customers ------------------
-    private String addCustomerCommand(String[] parts) {
+    private String addCustomerCommand(String[] parts) throws CustomExceptions.CustomerException {
         String validationError = validateCommand(null, parts, 5);
-        if (validationError != null) return validationError;
+        if (validationError != null) {
+            return validationError;
+        }
+
         try {
             int idx = 1;
             StringBuilder nameBuilder = new StringBuilder();
+
             while (idx < parts.length && !parts[idx].matches("\\d{9}")) {
                 if (!nameBuilder.isEmpty()) nameBuilder.append(" ");
                 nameBuilder.append(parts[idx++]);
             }
+
             String fullName = nameBuilder.toString();
             String customerId = parts[idx++];
             String phone = parts[idx++];
             String type = parts[idx].toUpperCase();
+
+            if (!customerId.matches("\\d{9}")) {
+                return "ERROR: Invalid ID format. Must be exactly 9 digits.";
+            }
+            if (!phone.matches("\\d{10}")) {
+                return "ERROR: Invalid phone format. Must be exactly 10 digits.";
+            }
 
             Customer customer = switch (type) {
                 case "NEW" -> new NewCustomer(fullName, customerId, phone);
@@ -364,30 +385,42 @@ public class ClientHandler implements Runnable {
                 case "VIP" -> new VIPCustomer(fullName, customerId, phone);
                 default -> null;
             };
-            if (customer == null) return "ERROR: unknown customer type: " + type;
 
+            if (customer == null) {
+                return "ERROR: Unknown customer type: " + type + ". Allowed: NEW, RETURNING, VIP";
+            }
             customerService.addCustomer(customer);
-            logAction(String.format("Employee '%s' added customer '%s' (ID=%s)", loggedInEmployee.getFullName(), customer.getCustomerName(), customer.getCustomerId()));
 
-            FileUtils.saveToFile(ServerApp.CUSTOMERS_FILE, customerService.listAllCustomers(), c -> String.format(
-                    """
-                    {
-                      "fullName": "%s",
-                      "customerId": "%s",
-                      "phoneNumber": "%s",
-                      "type": "%s"
-                    }
-                    """, c.getCustomerName(), c.getCustomerId(), c.getPhoneNumber(), c.getCustomerType()
-            ));
+            FileUtils.saveToFile(
+                    ServerApp.CUSTOMERS_FILE,
+                    customerService.listAllCustomers(),
+                    c -> String.format(
+                            """
+                            {
+                              "fullName": "%s",
+                              "customerId": "%s",
+                              "phoneNumber": "%s",
+                              "type": "%s"
+                            }
+                            """,
+                            c.getCustomerName(), c.getCustomerId(), c.getPhoneNumber(), c.getCustomerType()
+                    )
+            );
 
-            return "Customer added with ID: " + customerId;
-        } catch (Exception ex) {
-            return "ERROR: Failed to add customer - " + ex.getMessage();
+            logAction(String.format("Customer added: %s (ID=%s, Type=%s)", fullName, customerId, type));
+            return "Customer successfully added: " + fullName;
+
+        } catch (CustomExceptions.CustomerException e) {
+            return "ERROR: " + e.getMessage() + " already exists.";
+        } catch (IllegalArgumentException e) {
+            return "ERROR: " + e.getMessage();
+        } catch (Exception e) {
+            return "ERROR: Failed to add customer - " + e.getMessage();
         }
     }
 
-    // ------------------ Display ------------------
-    private String showEmployees() {
+    // ------------------ Show methods ------------------
+        private String showEmployees() {
          if (loggedInEmployee.getRole() != Role.ADMIN) return "ERROR: Only ADMIN can view all employees.";
         List<Employee> all = employeeService.listAllEmployees();
         if (all.isEmpty()) return "No employees found.";
@@ -433,14 +466,11 @@ public class ClientHandler implements Runnable {
             return "ERROR: Only ADMIN can convert logs to Word.";
         }
 
-        // We assume the 2 JSON logs exist:
-        // logs/sales_by_branch.json
-        // logs/sales_by_productType.json
-        // We output to logs/sales_report.doc
         File logsDir = new File("logs");
         if (!logsDir.exists()) {
             return "No logs/ folder found. Please run SAVE_SALES first.";
         }
+
         File branchFile = new File(logsDir, "sales_by_branch.json");
         File productFile = new File(logsDir, "sales_by_productType.json");
         if (!branchFile.exists() || !productFile.exists()) {
@@ -451,12 +481,13 @@ public class ClientHandler implements Runnable {
         try {
             LogsService.convertToDoc(branchFile.getAbsolutePath(), productFile.getAbsolutePath(), outputDoc);
         } catch (IOException e) {
-            e.printStackTrace();
-            return "ERROR converting logs to Word: " + e.getMessage();
+            String msg = "ERROR converting logs to Word: " + e.getMessage();
+            logAction(msg);
+            return msg;
         }
 
-        // Log this action
-        String logMsg = String.format("ADMIN '%s' converted logs to Word doc at '%s'.",
+        String logMsg = String.format(
+                "ADMIN '%s' converted logs to Word doc at '%s'.",
                 loggedInEmployee.getFullName(), outputDoc);
         logAction(logMsg);
 
@@ -467,16 +498,15 @@ public class ClientHandler implements Runnable {
         if (loggedInEmployee.getRole() != Role.ADMIN) {
             return "ERROR: Only ADMIN can save sales logs.";
         }
+
         List<SaleService.SaleRecord> allSales = SaleService.getAllSales();
         if (allSales.isEmpty()) {
             return "No sales to log.";
         }
+
         File logsDir = new File("logs");
-        if (!logsDir.exists()) {
-            boolean created = logsDir.mkdirs();
-            if (!created) {
-                return "ERROR: Failed to create logs directory.";
-            }
+        if (!logsDir.exists() && !logsDir.mkdirs()) {
+            return "ERROR: Failed to create logs directory.";
         }
 
         Map<String, List<SaleService.SaleRecord>> salesByBranch = new HashMap<>();
@@ -495,13 +525,18 @@ public class ClientHandler implements Runnable {
             fw1.write(branchJson);
             fw2.write(typeJson);
         } catch (IOException e) {
-            e.printStackTrace();
-            return "ERROR writing log files: " + e.getMessage();
+            String msg = "ERROR writing log files: " + e.getMessage();
+            logAction(msg);
+            return msg;
         }
+
+        logAction("Sales logs saved by ADMIN " + loggedInEmployee.getFullName());
         return "SUCCESS!: sales logs saved in logs/sales_by_branch.json and logs/sales_by_productType.json.";
     }
 
     private String buildJsonFromSalesMap(Map<String, List<SaleService.SaleRecord>> grouped) {
+        if (grouped == null || grouped.isEmpty()) return "{}";
+
         StringBuilder sb = new StringBuilder();
         sb.append("{\n");
         int size = grouped.size();
@@ -520,15 +555,11 @@ public class ClientHandler implements Runnable {
                 sb.append("      \"finalPrice\": ").append(sr.getFinalPrice()).append(",\n");
                 sb.append("      \"saleTime\": \"").append(sr.getSaleTime().format(dtf)).append("\"\n");
                 sb.append("    }");
-                if (i < recs.size() - 1) {
-                    sb.append(",");
-                }
+                if (i < recs.size() - 1) sb.append(",");
                 sb.append("\n");
             }
             sb.append("  ]");
-            if (++count < size) {
-                sb.append(",");
-            }
+            if (++count < size) sb.append(",");
             sb.append("\n");
         }
         sb.append("}\n");
@@ -539,18 +570,19 @@ public class ClientHandler implements Runnable {
         if (loggedInEmployee.getRole() != Role.ADMIN) {
             return "ERROR: Only ADMIN can view sales logs.";
         }
+
         File logsDir = new File("logs");
         if (!logsDir.exists() || !logsDir.isDirectory()) {
             return "No logs/ folder found. Try SAVE_SALES first.";
         }
+
         File branchFile = new File(logsDir, "sales_by_branch.json");
         File typeFile = new File(logsDir, "sales_by_productType.json");
         if (!branchFile.exists() && !typeFile.exists()) {
             return "No sales log files found. Try SAVE_SALES first.";
         }
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("\n---- VIEW SALES LOGS ----\n\n");
+        StringBuilder sb = new StringBuilder("\n---- VIEW SALES LOGS ----\n\n");
 
         if (branchFile.exists()) {
             sb.append("* Branch-Based Sales Logs *\n");
@@ -560,146 +592,170 @@ public class ClientHandler implements Runnable {
             sb.append("* Product-Type Sales Logs *\n");
             sb.append(FileUtils.readWholeFile(typeFile)).append("\n");
         }
+
+        logAction("Sales logs viewed by ADMIN " + loggedInEmployee.getFullName());
         return sb.toString();
     }
 
     // ------------------ Chat Commands ------------------
     private String startChatCommand(String[] parts) {
-        if (parts.length < 2) {
-            return "ERROR: Not all parameters provided. Usage: START_CHAT <branchId>";
-        }
-        String myBranch = loggedInEmployee.getBranchId();
-        String targetBranch = parts[1];
-        if (myBranch.equals(targetBranch)) {
-            return "ERROR: You cannot start a chat with your own branch.";
-        }
-        String chatId = chatService.startChat(myBranch, targetBranch);
-        currentChatId = chatId;
+        try {
+            if (parts.length < 2) {
+                return "ERROR: Not all parameters provided. Usage: START_CHAT <branchId>";
+            }
+            String myBranch = loggedInEmployee.getBranchId();
+            String targetBranch = parts[1];
+            if (myBranch.equals(targetBranch)) {
+                return "ERROR: You cannot start a chat with your own branch.";
+            }
+            String chatId = chatService.startChat(myBranch, targetBranch);
+            currentChatId = chatId;
 
-        // Log that this employee started a chat
-        String logMsg = String.format(
-                "CHAT: Employee '%s' (branch='%s') STARTED a chat with branch='%s'; chatId='%s'",
-                loggedInEmployee.getFullName(), myBranch, targetBranch, chatId);
-        logAction(logMsg);
+            // Log that this employee started a chat
+            String logMsg = String.format(
+                    "CHAT: Employee '%s' (branch='%s') STARTED a chat with branch='%s'; chatId='%s'",
+                    loggedInEmployee.getFullName(), myBranch, targetBranch, chatId);
+            logAction(logMsg);
 
-        return "Chat started with " + targetBranch + ". Current chat = " + chatId;
+            return "Chat started with " + targetBranch + ". Current chat = " + chatId;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR: Failed to start chat. " + e.getMessage();
+        }
     }
 
     private String joinChatCommand(String[] parts) {
-        if (parts.length < 2) {
-            return "ERROR: Not all parameters provided. Usage: JOIN_CHAT <chatId>";
-        }
-        String chatId = parts[1];
-        ChatService.ChatSession session = ChatService.getChatById(chatId);
-        if (session == null) {
-            return "ERROR: No chat found with ID " + chatId;
-        }
-        if (!session.isActive()) {
-            return "ERROR: That chat is no longer active.";
-        }
-        String userBranch = loggedInEmployee.getBranchId();
-        if (!session.getBranchesInvolved().contains(userBranch)) {
-            session.addBranch(userBranch);
-        }
-        currentChatId = chatId;
+        try {
+            if (parts.length < 2) {
+                return "ERROR: Not all parameters provided. Usage: JOIN_CHAT <chatId>";
+            }
+            String chatId = parts[1];
+            ChatService.ChatSession session = ChatService.getChatById(chatId);
+            if (session == null) {
+                return "ERROR: No chat found with ID " + chatId;
+            }
+            if (!session.isActive()) {
+                return "ERROR: That chat is no longer active.";
+            }
+            String userBranch = loggedInEmployee.getBranchId();
+            if (!session.getBranchesInvolved().contains(userBranch)) {
+                session.addBranch(userBranch);
+            }
+            currentChatId = chatId;
 
-        // Log that this employee joined an existing chat
-        String logMsg = String.format("CHAT: Employee '%s' (branch='%s') JOINED chatId='%s'",
-                loggedInEmployee.getFullName(), userBranch, chatId);
-        logAction(logMsg);
+            String logMsg = String.format("CHAT: Employee '%s' (branch='%s') JOINED chatId='%s'",
+                    loggedInEmployee.getFullName(), userBranch, chatId);
+            logAction(logMsg);
 
-        return "You joined chat " + chatId + ". Current chat set. Branches in chat: "
-                + session.getBranchesInvolved();
+            return "You joined chat " + chatId + ". Current chat set. Branches in chat: "
+                    + session.getBranchesInvolved();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR: Failed to join chat. " + e.getMessage();
+        }
     }
 
     private String sendMessageCommand(String line) {
-        String[] parts = line.split(" ", 2);
-        if (parts.length < 2) {
-            return "ERROR: Not all parameters provided. Usage: SEND_MSG <message...>";
-        }
-        if (currentChatId == null) {
-            return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
-        }
-        String messageContent = parts[1];
+        try {
+            String[] parts = line.split(" ", 2);
+            if (parts.length < 2) {
+                return "ERROR: Not all parameters provided. Usage: SEND_MSG <message...>";
+            }
+            if (currentChatId == null) {
+                return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
+            }
+            String messageContent = parts[1];
 
-        ChatService.ChatSession session = ChatService.getChatById(currentChatId);
-        if (session == null) {
-            return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
-        }
-        if (!session.isActive()) {
-            return "ERROR: Current chat is no longer active.";
-        }
-        String userBranch = loggedInEmployee.getBranchId();
-        if (loggedInEmployee.getRole() != Role.ADMIN
-                && !session.getBranchesInvolved().contains(userBranch)) {
-            return "ERROR: Your branch is not part of this chat, and you are not admin.";
-        }
+            ChatService.ChatSession session = ChatService.getChatById(currentChatId);
+            if (session == null) {
+                return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
+            }
+            if (!session.isActive()) {
+                return "ERROR: Current chat is no longer active.";
+            }
+            String userBranch = loggedInEmployee.getBranchId();
+            if (loggedInEmployee.getRole() != Role.ADMIN
+                    && !session.getBranchesInvolved().contains(userBranch)) {
+                return "ERROR: Your branch is not part of this chat, and you are not admin.";
+            }
 
-        // Create chat message
-        ChatService.ChatMessage msg = new ChatService.ChatMessage(loggedInEmployee.getFullName(), userBranch, messageContent);
-        session.addMessage(msg);
+            ChatService.ChatMessage msg = new ChatService.ChatMessage(
+                    loggedInEmployee.getFullName(), userBranch, messageContent);
+            session.addMessage(msg);
 
-        // Log the SEND_MSG operation
-        String logMsg = String.format("CHAT: Employee '%s' (branch='%s') SENT a message to chatId='%s': \"%s\"",
-                loggedInEmployee.getFullName(), userBranch, currentChatId, messageContent);
-        logAction(logMsg);
+            String logMsg = String.format("CHAT: Employee '%s' (branch='%s') SENT a message to chatId='%s': \"%s\"",
+                    loggedInEmployee.getFullName(), userBranch, currentChatId, messageContent);
+            logAction(logMsg);
 
-        return "MESSAGE SENT to chat " + currentChatId + ": " + messageContent;
+            return "MESSAGE SENT to chat " + currentChatId + ": " + messageContent;
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR: Failed to send message. " + e.getMessage();
+        }
     }
 
     private String showChatWithoutParam() {
-        if (currentChatId == null) {
-            return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
-        }
-        ChatService.ChatSession session = ChatService.getChatById(currentChatId);
-        if (session == null) {
-            return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
-        }
-        if (!session.isActive()) {
-            return "ERROR: That chat is no longer active.";
-        }
-        String userBranch = loggedInEmployee.getBranchId();
-        if (loggedInEmployee.getRole() != Role.ADMIN
-                && !session.getBranchesInvolved().contains(userBranch)) {
-            return "ERROR: Your branch is not part of this chat, and you are not admin.";
-        }
-        if (session.getMessages().isEmpty()) {
-            return "No messages yet in the current chat (" + currentChatId + ")";
-        }
+        try {
+            if (currentChatId == null) {
+                return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
+            }
+            ChatService.ChatSession session = ChatService.getChatById(currentChatId);
+            if (session == null) {
+                return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
+            }
+            if (!session.isActive()) {
+                return "ERROR: That chat is no longer active.";
+            }
+            String userBranch = loggedInEmployee.getBranchId();
+            if (loggedInEmployee.getRole() != Role.ADMIN
+                    && !session.getBranchesInvolved().contains(userBranch)) {
+                return "ERROR: Your branch is not part of this chat, and you are not admin.";
+            }
+            if (session.getMessages().isEmpty()) {
+                return "No messages yet in the current chat (" + currentChatId + ")";
+            }
 
-        // Log the SHOW_CHAT action
-        String logMsg = String.format("CHAT: Employee '%s' (branch='%s') VIEWED chatId='%s'",
-                loggedInEmployee.getFullName(), userBranch, currentChatId);
-        logAction(logMsg);
+            String logMsg = String.format("CHAT: Employee '%s' (branch='%s') VIEWED chatId='%s'",
+                    loggedInEmployee.getFullName(), userBranch, currentChatId);
+            logAction(logMsg);
 
-        StringBuilder sb = new StringBuilder();
-        sb.append("Chat ").append(currentChatId).append(" messages:\n");
-        DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-        for (ChatService.ChatMessage msg : session.getMessages()) {
-            sb.append("[").append(msg.getTimestamp().format(dtf)).append("] ")
-                    .append(msg.getSenderName()).append(" (").append(msg.getSenderBranch())
-                    .append("): ").append(msg.getContent()).append("\n");
+            StringBuilder sb = new StringBuilder();
+            sb.append("Chat ").append(currentChatId).append(" messages:\n");
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            for (ChatService.ChatMessage msg : session.getMessages()) {
+                sb.append("[").append(msg.getTimestamp().format(dtf)).append("] ")
+                        .append(msg.getSenderName()).append(" (").append(msg.getSenderBranch())
+                        .append("): ").append(msg.getContent()).append("\n");
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR: Failed to show chat. " + e.getMessage();
         }
-        return sb.toString();
     }
 
     private String listChatsCommand() {
-        if (loggedInEmployee.getRole() != Role.ADMIN) {
-            return "ERROR: Only ADMIN can list all chats.";
-        }
-        Collection<ChatService.ChatSession> allChats = ChatService.listAllChats();
-        if (allChats.isEmpty()) {
-            return "No active chats at the moment.";
-        }
-        StringBuilder sb = new StringBuilder("Active Chats:\n");
-        for (ChatService.ChatSession cs : allChats) {
-            if (cs.isActive()) {
-                sb.append("ChatID: ").append(cs.getChatId())
-                        .append(", Branches: ").append(cs.getBranchesInvolved())
-                        .append("\n");
+        try {
+            if (loggedInEmployee.getRole() != Role.ADMIN) {
+                return "ERROR: Only ADMIN can list all chats.";
             }
+            Collection<ChatService.ChatSession> allChats = ChatService.listAllChats();
+            if (allChats.isEmpty()) {
+                return "No active chats at the moment.";
+            }
+            StringBuilder sb = new StringBuilder("Active Chats:\n");
+            for (ChatService.ChatSession cs : allChats) {
+                if (cs.isActive()) {
+                    sb.append("ChatID: ").append(cs.getChatId())
+                            .append(", Branches: ").append(cs.getBranchesInvolved())
+                            .append("\n");
+                }
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR: Failed to list chats. " + e.getMessage();
         }
-        return sb.toString();
     }
 
 }

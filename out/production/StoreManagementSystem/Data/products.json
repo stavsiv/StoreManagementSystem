@@ -4,7 +4,7 @@
   "productName": "Jeans",
   "category": "Clothing",
   "price": 200.00,
-  "quantityInStock": 90,
+  "quantityInStock": 185,
   "branchId": "B001"
 }
 ,
@@ -96,6 +96,15 @@
   "price": 150.00,
   "quantityInStock": 45,
   "branchId": "B003"
+}
+,
+{
+  "productId": "P100",
+  "productName": "Jeans",
+  "category": "Clothing",
+  "price": 200.00,
+  "quantityInStock": 95,
+  "branchId": "B006"
 }
 
 ]

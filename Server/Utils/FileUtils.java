@@ -4,9 +4,9 @@ import java.io.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.regex.*;
+import Exceptions.CustomExceptions;
 import Models.*;
 import Models.Role;
-
 
 public class FileUtils {
 
@@ -139,7 +139,7 @@ public class FileUtils {
 
     // Parses for each type
     /** Parses a Branch from JSON string */
-    public static Branch parseBranchFromJson(String json) {
+    public static Branch parseBranchFromJson(String json) throws CustomExceptions.BranchException {
         String id = extractJsonStringValue(json, "branchId");
         String name = extractJsonStringValue(json, "branchName");
         if (id == null || name == null) return null;
@@ -147,7 +147,7 @@ public class FileUtils {
     }
 
     /** Parses an Employee from JSON string */
-    public static Employee parseEmployeeFromJson(String json) {
+    public static Employee parseEmployeeFromJson(String json) throws CustomExceptions.EmployeeException {
         String fullName = extractJsonStringValue(json, "fullName");
         String id = extractJsonStringValue(json, "employeeId");
         String phone = extractJsonStringValue(json, "phoneNumber");
@@ -172,7 +172,7 @@ public class FileUtils {
     }
 
     /** Parses a Product from JSON string */
-    public static Product parseProductFromJson(String json) {
+    public static Product parseProductFromJson(String json) throws CustomExceptions.ProductException {
         String id = extractJsonStringValue(json, "productId");
         String name = extractJsonStringValue(json, "productName");
         String category = extractJsonStringValue(json, "category");
@@ -184,7 +184,7 @@ public class FileUtils {
     }
 
     /** Parses a Customer from JSON string */
-    public static Customer parseCustomerFromJson(String json) {
+    public static Customer parseCustomerFromJson(String json) throws CustomExceptions.CustomerException {
         String name = extractJsonStringValue(json, "fullName");
         String id = extractJsonStringValue(json, "customerId");
         String phone = extractJsonStringValue(json, "phoneNumber");

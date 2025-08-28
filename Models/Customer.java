@@ -1,5 +1,7 @@
 package Models;
 
+import Exceptions.CustomExceptions;
+
 /**
  * Abstract base class representing a Customer.
  * Provides common fields, validation, and abstract methods for different
@@ -11,7 +13,7 @@ public abstract class Customer {
     protected String phoneNumber; // must be 10 digits
 
     // Constructor
-    public Customer(String fullName, String customerId, String phoneNumber) {
+    public Customer(String fullName, String customerId, String phoneNumber) throws CustomExceptions.CustomerException {
         setCustomerName(fullName);
         setCustomerId(customerId);
         setPhoneNumber(phoneNumber);
@@ -22,34 +24,30 @@ public abstract class Customer {
         return fullName;
     }
 
-    public void setCustomerName(String name) {
-        if (name == null || !name.matches("[A-Za-z ]{2,}")) {
-            throw new IllegalArgumentException("Customer name must contain only letters and spaces, and be at least 2 characters long.");
-        }
-        this.fullName = name;
+    public void setCustomerName(String fullName) throws CustomExceptions.CustomerException {
+        if (fullName == null || fullName.isBlank())
+            throw new CustomExceptions.EmptyCustomerNameException("Full name cannot be empty");
+        this.fullName = fullName;
     }
 
     public String getCustomerId() {
         return customerId;
     }
 
-    public void setCustomerId(String id) {
-        if (id == null || !id.matches("\\d{9}")) {
-            throw new IllegalArgumentException("Customer ID must be exactly 9 digits.");
-        }
-        this.customerId = id;
+    public void setCustomerId(String customerId) throws CustomExceptions.CustomerException {
+        if (customerId == null || !customerId.matches("\\d{9}"))
+            throw new CustomExceptions.InvalidCustomerIdException("Customer ID must be exactly 9 digits.");
+        this.customerId = customerId;
     }
 
     public String getPhoneNumber() {
         return phoneNumber;
     }
 
-    public void setPhoneNumber(String phone) {
-        if (phone == null || !phone.matches("\\d{10}")) {
-            throw new IllegalArgumentException("Phone number must contain exactly 10 digits.");
-        }
-
-        this.phoneNumber = phone;
+    public void setPhoneNumber(String phoneNumber) throws CustomExceptions.CustomerException {
+        if (phoneNumber == null || !phoneNumber.matches("\\d{10}"))
+            throw new CustomExceptions.InvalidCustomerPhoneException("Phone number must be exactly 10 digits.");
+        this.phoneNumber = phoneNumber;
     }
 
     // Abstract Methods

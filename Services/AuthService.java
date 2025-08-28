@@ -1,27 +1,23 @@
 package Services;
 
+import Exceptions.CustomExceptions;
 import Models.Employee;
 import java.util.HashMap;
 import java.util.Map;
 
 public class AuthService {
 
-    /**
-     * This class handles authentication processes, including verifying user credentials and managing login operations.
-     */
-
     private Map<String, Employee> users;
     private Map<String, Boolean> loggedInMap;
 
-    // Constructor
     public AuthService() {
         this.users = new HashMap<>();
         this.loggedInMap = new HashMap<>();
     }
 
-    public void register(Employee employee, String username, String password) {
+    public void register(Employee employee, String username, String password) throws CustomExceptions.EmployeeException {
         if (users.containsKey(username)) {
-            return;
+            throw new CustomExceptions.InvalidUsernameException("Username already exists: " + username);
         }
         employee.setUserName(username);
         employee.setPassword(password);
@@ -29,32 +25,27 @@ public class AuthService {
         loggedInMap.put(username, false);
     }
 
-    public Employee login(String username, String password) {
+    public Employee login(String username, String password) throws CustomExceptions.InvalidUsernameException, CustomExceptions.InvalidPasswordException {
         if (!users.containsKey(username)) {
-            System.out.println("The username does not exist in the system!");
-            return null;
+            throw new CustomExceptions.InvalidUsernameException("The username does not exist!");
         }
 
         Employee employee = users.get(username);
         if (!employee.getPassword().equals(password)) {
-            System.out.println("Incorrect password!");
-            return null;
+            throw new CustomExceptions.InvalidPasswordException("Incorrect password!");
         }
 
         if (loggedInMap.get(username)) {
-            System.out.println("This user is already logged in!");
-            return null;
+            throw new CustomExceptions.InvalidUsernameException("This user is already logged in!");
         }
 
         loggedInMap.put(username, true);
-        System.out.println("Login successful! Welcome, " + employee.getFullName());
         return employee;
     }
 
     public void logout(String username) {
         if (loggedInMap.containsKey(username) && loggedInMap.get(username)) {
             loggedInMap.put(username, false);
-            System.out.println("User " + username + " logged out.");
         }
     }
 }
