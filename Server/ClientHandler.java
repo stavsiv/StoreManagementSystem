@@ -86,31 +86,41 @@ public class ClientHandler implements Runnable {
     // ------------------ Login ------------------
     private boolean login(BufferedReader in, PrintWriter out) throws IOException {
         out.println("Welcome to the Store Management System!");
-        out.println("Please enter your username:");
-        String username = in.readLine();
-        if (username == null) return false;
 
-        out.println("Please enter your password:");
-        String password = in.readLine();
-        if (password == null) return false;
+        int attempts = 0;
+        final int MAX_ATTEMPTS = 3;
 
-        try {
-            Employee loggedInEmployee = authService.login(username.trim(), password.trim());
-            if (loggedInEmployee == null) {
-                out.println("ERROR: Invalid credentials or user already logged in. Closing connection...");
-                return false;
+        while (attempts < MAX_ATTEMPTS) {
+            out.println("Please enter your username:");
+            String username = in.readLine();
+            if (username == null) return false;
+
+            out.println("Please enter your password:");
+            String password = in.readLine();
+            if (password == null) return false;
+
+            try {
+                Employee loggedInEmployee = authService.login(username.trim(), password.trim());
+                if (loggedInEmployee == null) {
+                    out.println("ERROR: Invalid credentials or user already logged in.");
+                    attempts++;
+                    continue;
+                }
+
+                this.loggedInEmployee = loggedInEmployee;
+                this.currentUsername = username;
+                out.println("Login successful! Hello, " + loggedInEmployee.getFullName() +
+                        " (Role: " + loggedInEmployee.getRole() + ", Branch: " + loggedInEmployee.getBranchId() + ")");
+                return true;
+
+            } catch (CustomExceptions.InvalidPasswordException | CustomExceptions.InvalidUsernameException e) {
+                out.println("ERROR: " + e.getMessage());
+                attempts++;
             }
-
-            this.loggedInEmployee = loggedInEmployee;
-            this.currentUsername = username;
-            out.println("Login successful! Hello, " + loggedInEmployee.getFullName() +
-                    " (Role: " + loggedInEmployee.getRole() + " ,Branch: " + loggedInEmployee.getBranchId()+ ")");
-            return true;
-
-        } catch (CustomExceptions.InvalidPasswordException | CustomExceptions.InvalidUsernameException e) {
-            out.println("ERROR: " + e.getMessage());
-            return false;
         }
+
+        out.println("ERROR: Maximum login attempts reached. Closing connection...");
+        return false;
     }
 
     // ------------------ Command Handling ------------------
@@ -182,24 +192,25 @@ public class ClientHandler implements Runnable {
             sb.append("SHOW_EMPLOYEES - display all employees\n");
             sb.append("SHOW_CUSTOMERS - display all customers\n");
             sb.append("SHOW_PRODUCTS - display all products\n");
-            sb.append("ADD_EMPLOYEE <fullName> <id> <phone> <bankAccount> <empNum> <branch> <role> <username> <password>\n");
-            sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
+            sb.append("ADD_EMPLOYEE <FullName> <Id> <Phone> <BankAccount> <EmpNum> <Branch> <Role> <Username> <Password>\n");
+            sb.append("ADD_CUSTOMER <Name> <Id> <Phone> <Type> (NEW, RETURNING, VIP)\n");
             sb.append("SAVE_SALES - save sales logs to JSON\n");
             sb.append("VIEW_SALES_LOGS - view saved logs\n");
             sb.append("LOGS_TO_WORD - convert logs to Word doc\n");
         } else {
             sb.append("SHOW_PRODUCTS - display products in your branch\n");
-            sb.append("ADD_CUSTOMER <name> <id> <phone> <type> (NEW, RETURNING, VIP)\n");
-            sb.append("SELL <productId> <quantity> <customerId>\n");
-            sb.append("PURCHASE_PRODUCT <productId> <productName> <category> <price> <quantity> <branch>\n");
+            sb.append("SHOW_CUSTOMERS - display all customers\n");
+            sb.append("ADD_CUSTOMER <Name> <Id> <Phone> <Type> (NEW, RETURNING, VIP)\n");
+            sb.append("SELL <ProductId> <Quantity> <CustomerId>\n");
+            sb.append("PURCHASE_PRODUCT <ProductId> <ProductName> <Category> <Price> <Quantity> <Branch>\n");
         }
 
         sb.append("LOGOUT - logout\n");
         sb.append("EXIT - close connection\n");
         sb.append("--- Chat Commands ---\n");
-        sb.append("START_CHAT <branchId>\n");
-        sb.append("JOIN_CHAT <chatId>\n");
-        sb.append("SEND_MSG <message...>\n");
+        sb.append("START_CHAT <BranchId>\n");
+        sb.append("JOIN_CHAT <ChatId>\n");
+        sb.append("SEND_MSG <Message...>\n");
         sb.append("SHOW_CHAT\n");
         sb.append("LIST_CHATS\n");
         sb.append("====================");
@@ -265,7 +276,7 @@ public class ClientHandler implements Runnable {
                     e.getEmployeeNumber(), e.getBranchId(), e.getRole(), e.getUserName(), e.getPassword()
             ));
 
-            logAction(String.format("Employee added: %s (ID=%s, Branch=%s, Role=%s)", fullName, id, branch, newEmpRole));
+            logAction(String.format("Employee added: %s (Id=%s, Branch=%s, Role=%s)", fullName, id, branch, newEmpRole));
             return "Employee successfully added: " + fullName;
 
         } catch (CustomExceptions.EmployeeException e) {
@@ -286,7 +297,7 @@ public class ClientHandler implements Runnable {
             String customerId = parts[3];
 
             Customer customer = customerService.getCustomerById(customerId);
-            if (customer == null) return "ERROR: No customer found with ID " + customerId;
+            if (customer == null) return "ERROR: No customer found with Id " + customerId;
 
             Product product = productService.getProductByIdAndBranch(productId, loggedInEmployee.getBranchId());
             if (product == null) return "ERROR: Product not found in your branch.";
@@ -344,7 +355,7 @@ public class ClientHandler implements Runnable {
                 productService.addOrUpdateProduct(newProduct, 0);
                 logAction(String.format("PURCHASE: Employee '%s' created new product '%s' (id=%s) qty=%d",
                         loggedInEmployee.getFullName(), productName, productId, quantity));
-                return "Product created: " + productName + " (ID=" + productId + ") with stock " + quantity;
+                return "Product created: " + productName + " (Id=" + productId + ") with stock " + quantity;
             }
         } catch (NumberFormatException e) {
             return "ERROR: Price or Quantity invalid format.";
@@ -373,7 +384,7 @@ public class ClientHandler implements Runnable {
             String type = parts[idx].toUpperCase();
 
             if (!customerId.matches("\\d{9}")) {
-                return "ERROR: Invalid ID format. Must be exactly 9 digits.";
+                return "ERROR: Invalid Id format. Must be exactly 9 digits.";
             }
             if (!phone.matches("\\d{10}")) {
                 return "ERROR: Invalid phone format. Must be exactly 10 digits.";
@@ -407,7 +418,7 @@ public class ClientHandler implements Runnable {
                     )
             );
 
-            logAction(String.format("Customer added: %s (ID=%s, Type=%s)", fullName, customerId, type));
+            logAction(String.format("Customer added: %s (Id=%s, Type=%s)", fullName, customerId, type));
             return "Customer successfully added: " + fullName;
 
         } catch (CustomExceptions.CustomerException e) {
@@ -447,16 +458,31 @@ public class ClientHandler implements Runnable {
     }
 
     private String showCustomers() {
-        if (loggedInEmployee.getRole() != Role.ADMIN) return "ERROR: Only ADMIN can view all customers.";
         List<Customer> allCustomers = customerService.listAllCustomers();
         if (allCustomers.isEmpty()) return "No customers found.";
 
-        StringBuilder sb = new StringBuilder(String.format("%-20s %-10s %-15s %-15s\n", "Name", "Id", "Phone", "Type"));
-        sb.append("-------------------------------------------------------------\n");
+        StringBuilder sb = new StringBuilder(String.format(
+                "%-20s %-10s %-12s %-10s %-8s\n", "Name", "Id", "Phone", "Type", "Discount"));
+        sb.append("---------------------------------------------------------------\n");
+
         for (Customer customer : allCustomers) {
-            sb.append(String.format("%-20s %-10s %-15s %-15s\n",
-                    customer.getCustomerName(), customer.getCustomerId(), customer.getPhoneNumber(), customer.getCustomerType()));
+            String type = customer.getCustomerType();
+            String discount = switch (type.toLowerCase()) {
+                case "returning" -> "10%";
+                case "vip" -> "30%";
+                default -> "0%";
+            };
+
+            sb.append(String.format(
+                    "%-20s %-10s %-12s %-10s %-8s\n",
+                    customer.getCustomerName(),
+                    customer.getCustomerId(),
+                    customer.getPhoneNumber(),
+                    type,
+                    discount
+            ));
         }
+
         return sb.toString();
     }
 
@@ -601,7 +627,7 @@ public class ClientHandler implements Runnable {
     private String startChatCommand(String[] parts) {
         try {
             if (parts.length < 2) {
-                return "ERROR: Not all parameters provided. Usage: START_CHAT <branchId>";
+                return "ERROR: Not all parameters provided. Usage: START_CHAT <BranchId>";
             }
             String myBranch = loggedInEmployee.getBranchId();
             String targetBranch = parts[1];
@@ -627,7 +653,7 @@ public class ClientHandler implements Runnable {
     private String joinChatCommand(String[] parts) {
         try {
             if (parts.length < 2) {
-                return "ERROR: Not all parameters provided. Usage: JOIN_CHAT <chatId>";
+                return "ERROR: Not all parameters provided. Usage: JOIN_CHAT <ChatId>";
             }
             String chatId = parts[1];
             ChatService.ChatSession session = ChatService.getChatById(chatId);
@@ -659,7 +685,7 @@ public class ClientHandler implements Runnable {
         try {
             String[] parts = line.split(" ", 2);
             if (parts.length < 2) {
-                return "ERROR: Not all parameters provided. Usage: SEND_MSG <message...>";
+                return "ERROR: Not all parameters provided. Usage: SEND_MSG <Message...>";
             }
             if (currentChatId == null) {
                 return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";

@@ -124,5 +124,12 @@
   "phoneNumber": "0572233445",
   "type": "New"
 }
+,
+{
+  "fullName": "Peer Tasi",
+  "customerId": "000000045",
+  "phoneNumber": "0541122334",
+  "type": "New"
+}
 
 ]
