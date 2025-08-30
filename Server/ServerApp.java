@@ -62,11 +62,6 @@ public class ServerApp {
                 authService.register(currEmployee, currEmployee.getUserName(), currEmployee.getPassword());
             }
         }
-//        List<Employee> all = employeeService.listAllEmployees();
-//        for(Employee e : all) {
-//            System.out.println("Loaded employee: " + e.getUserName() + " / " + e.getAccountNumber());
-//        }
-
 
         // Load products
         for (String prodJson : FileUtils.readJsonObjectsFromFile(PRODUCTS_FILE)) {

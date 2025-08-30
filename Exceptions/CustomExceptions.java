@@ -94,4 +94,30 @@ public class CustomExceptions {
     public static class EmptyProductBranchException extends ProductException {
         public EmptyProductBranchException(String message) { super(message); }
     }
-}
+
+    // -------------------- Custom Chat Exceptions --------------------
+    public static class ChatException extends Exception {
+        public ChatException(String message) { super(message); }
+    }
+
+    public static class ChatOwnBranchException extends ChatException {
+        public ChatOwnBranchException(String message) { super(message); }
+    }
+
+    public static class ChatBranchOfflineException extends ChatException {
+        public ChatBranchOfflineException(String message) { super(message); }
+    }
+
+    public static class ChatBranchBusyException extends ChatException {
+        public ChatBranchBusyException(String message) { super(message); }
+    }
+
+    public static class ChatBranchQueuedException extends ChatException {
+        public ChatBranchQueuedException(String message) { super(message); }
+    }
+
+    public static class ChatInactiveException extends ChatException {
+        public ChatInactiveException(String message) { super(message); }
+    }
+
+    }

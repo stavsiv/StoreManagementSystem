@@ -10,6 +10,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 
+import static java.lang.System.out;
+
 /**
  * Handles client sessions and commands in the Store Management System.
  * Improved exception handling for more robust operations.
@@ -61,7 +63,7 @@ public class ClientHandler implements Runnable {
             } catch (IOException ex) {
                 ex.printStackTrace();
             }
-            System.out.println("Client disconnected.");
+            out.println("Client disconnected.");
         }
     }
 
@@ -363,7 +365,7 @@ public class ClientHandler implements Runnable {
     }
 
     // ------------------ Customers ------------------
-    private String addCustomerCommand(String[] parts) throws CustomExceptions.CustomerException {
+    private String addCustomerCommand(String[] parts) {
         String validationError = validateCommand(null, parts, 5);
         if (validationError != null) {
             return validationError;
@@ -629,21 +631,30 @@ public class ClientHandler implements Runnable {
             if (parts.length < 2) {
                 return "ERROR: Not all parameters provided. Usage: START_CHAT <BranchId>";
             }
+
             String myBranch = loggedInEmployee.getBranchId();
             String targetBranch = parts[1];
+
             if (myBranch.equals(targetBranch)) {
                 return "ERROR: You cannot start a chat with your own branch.";
             }
+
+            // Start a chat session
             String chatId = chatService.startChat(myBranch, targetBranch);
             currentChatId = chatId;
 
-            // Log that this employee started a chat
+            // Register listener for real-time updates
+            ChatService.ChatSession session = chatService.getChatById(chatId);
+            registerChatListener(session);
+
+            // Log action
             String logMsg = String.format(
                     "CHAT: Employee '%s' (branch='%s') STARTED a chat with branch='%s'; chatId='%s'",
                     loggedInEmployee.getFullName(), myBranch, targetBranch, chatId);
             logAction(logMsg);
 
             return "Chat started with " + targetBranch + ". Current chat = " + chatId;
+
         } catch (Exception e) {
             e.printStackTrace();
             return "ERROR: Failed to start chat. " + e.getMessage();
@@ -655,19 +666,25 @@ public class ClientHandler implements Runnable {
             if (parts.length < 2) {
                 return "ERROR: Not all parameters provided. Usage: JOIN_CHAT <ChatId>";
             }
+
             String chatId = parts[1];
-            ChatService.ChatSession session = ChatService.getChatById(chatId);
+            ChatService.ChatSession session = chatService.getChatById(chatId);
+
             if (session == null) {
                 return "ERROR: No chat found with ID " + chatId;
             }
+
             if (!session.isActive()) {
                 return "ERROR: That chat is no longer active.";
             }
+
             String userBranch = loggedInEmployee.getBranchId();
             if (!session.getBranchesInvolved().contains(userBranch)) {
                 session.addBranch(userBranch);
             }
+
             currentChatId = chatId;
+            registerChatListener(session); // register listener for real-time messages
 
             String logMsg = String.format("CHAT: Employee '%s' (branch='%s') JOINED chatId='%s'",
                     loggedInEmployee.getFullName(), userBranch, chatId);
@@ -675,6 +692,7 @@ public class ClientHandler implements Runnable {
 
             return "You joined chat " + chatId + ". Current chat set. Branches in chat: "
                     + session.getBranchesInvolved();
+
         } catch (Exception e) {
             e.printStackTrace();
             return "ERROR: Failed to join chat. " + e.getMessage();
@@ -687,18 +705,22 @@ public class ClientHandler implements Runnable {
             if (parts.length < 2) {
                 return "ERROR: Not all parameters provided. Usage: SEND_MSG <Message...>";
             }
+
             if (currentChatId == null) {
                 return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
             }
-            String messageContent = parts[1];
 
-            ChatService.ChatSession session = ChatService.getChatById(currentChatId);
+            String messageContent = parts[1];
+            ChatService.ChatSession session = chatService.getChatById(currentChatId);
+
             if (session == null) {
                 return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
             }
+
             if (!session.isActive()) {
                 return "ERROR: Current chat is no longer active.";
             }
+
             String userBranch = loggedInEmployee.getBranchId();
             if (loggedInEmployee.getRole() != Role.ADMIN
                     && !session.getBranchesInvolved().contains(userBranch)) {
@@ -707,56 +729,17 @@ public class ClientHandler implements Runnable {
 
             ChatService.ChatMessage msg = new ChatService.ChatMessage(
                     loggedInEmployee.getFullName(), userBranch, messageContent);
-            session.addMessage(msg);
+            session.addMessage(msg); // this will automatically notify all listeners
 
             String logMsg = String.format("CHAT: Employee '%s' (branch='%s') SENT a message to chatId='%s': \"%s\"",
                     loggedInEmployee.getFullName(), userBranch, currentChatId, messageContent);
             logAction(logMsg);
 
             return "MESSAGE SENT to chat " + currentChatId + ": " + messageContent;
+
         } catch (Exception e) {
             e.printStackTrace();
             return "ERROR: Failed to send message. " + e.getMessage();
-        }
-    }
-
-    private String showChatWithoutParam() {
-        try {
-            if (currentChatId == null) {
-                return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
-            }
-            ChatService.ChatSession session = ChatService.getChatById(currentChatId);
-            if (session == null) {
-                return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
-            }
-            if (!session.isActive()) {
-                return "ERROR: That chat is no longer active.";
-            }
-            String userBranch = loggedInEmployee.getBranchId();
-            if (loggedInEmployee.getRole() != Role.ADMIN
-                    && !session.getBranchesInvolved().contains(userBranch)) {
-                return "ERROR: Your branch is not part of this chat, and you are not admin.";
-            }
-            if (session.getMessages().isEmpty()) {
-                return "No messages yet in the current chat (" + currentChatId + ")";
-            }
-
-            String logMsg = String.format("CHAT: Employee '%s' (branch='%s') VIEWED chatId='%s'",
-                    loggedInEmployee.getFullName(), userBranch, currentChatId);
-            logAction(logMsg);
-
-            StringBuilder sb = new StringBuilder();
-            sb.append("Chat ").append(currentChatId).append(" messages:\n");
-            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
-            for (ChatService.ChatMessage msg : session.getMessages()) {
-                sb.append("[").append(msg.getTimestamp().format(dtf)).append("] ")
-                        .append(msg.getSenderName()).append(" (").append(msg.getSenderBranch())
-                        .append("): ").append(msg.getContent()).append("\n");
-            }
-            return sb.toString();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "ERROR: Failed to show chat. " + e.getMessage();
         }
     }
 
@@ -765,10 +748,12 @@ public class ClientHandler implements Runnable {
             if (loggedInEmployee.getRole() != Role.ADMIN) {
                 return "ERROR: Only ADMIN can list all chats.";
             }
-            Collection<ChatService.ChatSession> allChats = ChatService.listAllChats();
+
+            Collection<ChatService.ChatSession> allChats = chatService.listAllChats();
             if (allChats.isEmpty()) {
                 return "No active chats at the moment.";
             }
+
             StringBuilder sb = new StringBuilder("Active Chats:\n");
             for (ChatService.ChatSession cs : allChats) {
                 if (cs.isActive()) {
@@ -778,9 +763,70 @@ public class ClientHandler implements Runnable {
                 }
             }
             return sb.toString();
+
         } catch (Exception e) {
             e.printStackTrace();
             return "ERROR: Failed to list chats. " + e.getMessage();
+        }
+    }
+
+    private void registerChatListener(ChatService.ChatSession session) {
+        String userBranch = loggedInEmployee.getBranchId();
+        session.registerBranchListener(userBranch, msg -> {
+            try {
+                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+                DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+                out.println(String.format("[NEW MSG][%s] %s (%s): %s",
+                        msg.getTimestamp().format(dtf),
+                        msg.getSenderName(),
+                        msg.getSenderBranch(),
+                        msg.getContent()));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+    }
+
+    private String showChatWithoutParam() {
+        try {
+            if (currentChatId == null) {
+                return "ERROR: No current chat set. Please START_CHAT or JOIN_CHAT first.";
+            }
+
+            ChatService.ChatSession session = chatService.getChatById(currentChatId);
+            if (session == null) {
+                return "ERROR: Current chat not found or invalid. Re-join or start a new chat.";
+            }
+
+            if (!session.isActive()) {
+                return "ERROR: That chat is no longer active.";
+            }
+
+            String userBranch = loggedInEmployee.getBranchId();
+            if (loggedInEmployee.getRole() != Role.ADMIN
+                    && !session.getBranchesInvolved().contains(userBranch)) {
+                return "ERROR: Your branch is not part of this chat, and you are not admin.";
+            }
+
+            if (session.getMessages().isEmpty()) {
+                return "No messages yet in the current chat (" + currentChatId + ")";
+            }
+
+            // Format messages
+            StringBuilder sb = new StringBuilder();
+            sb.append("Chat ").append(currentChatId).append(" messages:\n");
+            DateTimeFormatter dtf = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
+            for (ChatService.ChatMessage msg : session.getMessages()) {
+                sb.append("[").append(msg.getTimestamp().format(dtf)).append("] ")
+                        .append(msg.getSenderName()).append(" (").append(msg.getSenderBranch())
+                        .append("): ").append(msg.getContent()).append("\n");
+            }
+
+            return sb.toString();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "ERROR: Failed to show chat. " + e.getMessage();
         }
     }
 

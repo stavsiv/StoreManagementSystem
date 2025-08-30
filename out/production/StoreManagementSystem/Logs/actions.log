@@ -48,3 +48,14 @@
 [2025-08-28 12:42] Sales logs saved by ADMIN Stav Sivilya
 [2025-08-28 12:42] Sales logs viewed by ADMIN Stav Sivilya
 [2025-08-28 12:42] ADMIN 'Stav Sivilya' converted logs to Word doc at 'logs/sales_report.doc'.
+[2025-08-30 13:26] CHAT: Employee 'Osher Cohen' (branch='B005') STARTED a chat with branch='B003'; chatId='CHAT-1000'
+[2025-08-30 13:26] CHAT: Employee 'Osher Cohen' (branch='B005') SENT a message to chatId='CHAT-1000': "HIII"
+[2025-08-30 13:27] CHAT: Employee 'Lidor Stamker' (branch='B003') JOINED chatId='CHAT-1000'
+[2025-08-30 13:27] CHAT: Employee 'Lidor Stamker' (branch='B003') VIEWED chatId='CHAT-1000'
+[2025-08-30 13:28] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "shakom"
+[2025-08-30 13:28] CHAT: Employee 'Osher Cohen' (branch='B005') VIEWED chatId='CHAT-1000'
+[2025-08-30 13:46] CHAT: Employee 'Osher Cohen' (branch='B005') STARTED a chat with branch='B003'; chatId='CHAT-1000'
+[2025-08-30 13:47] CHAT: Employee 'Lidor Stamker' (branch='B003') JOINED chatId='CHAT-1000'
+[2025-08-30 13:47] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "hiiii"
+[2025-08-30 13:47] CHAT: Employee 'Osher Cohen' (branch='B005') SENT a message to chatId='CHAT-1000': "heloo to yoyyy"
+[2025-08-30 13:48] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "good bye"
