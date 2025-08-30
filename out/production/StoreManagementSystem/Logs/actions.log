@@ -59,3 +59,7 @@
 [2025-08-30 13:47] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "hiiii"
 [2025-08-30 13:47] CHAT: Employee 'Osher Cohen' (branch='B005') SENT a message to chatId='CHAT-1000': "heloo to yoyyy"
 [2025-08-30 13:48] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "good bye"
+[2025-08-30 18:20] CHAT: Employee 'Lidor Stamker' (branch='B003') STARTED a chat with branch='B005'; chatId='CHAT-1000'
+[2025-08-30 18:21] CHAT: Employee 'Osher Cohen' (branch='B005') JOINED chatId='CHAT-1000'
+[2025-08-30 18:21] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "HII THEREEE"
+[2025-08-30 18:22] CHAT: Employee 'Osher Cohen' (branch='B005') SENT a message to chatId='CHAT-1000': "HELFDNF"

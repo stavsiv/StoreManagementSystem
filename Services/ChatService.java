@@ -11,111 +11,158 @@ public class ChatService {
 
     private Map<String, ChatSession> chatMap = new ConcurrentHashMap<>();
     private Map<String, String> branchActiveChat = new ConcurrentHashMap<>(); // branch -> chatId
-    private Queue<String> waitingQueue = new ConcurrentLinkedQueue<>();
+    private Map<String, Queue<ChatRequest>> waitingQueue = new ConcurrentHashMap<>(); // targetBranch -> waiting requests
     private int chatCounter = 1000;
+    public Collection<ChatSession> listAllChats() { return chatMap.values(); }
 
-    // -------------------- Chat Methods --------------------
 
-    /**
-     * Start a chat between two branches.
-     * If target branch is busy, throws ChatBranchBusyException.
-     * If target branch offline, throws ChatBranchOfflineException.
-     */
-    public synchronized String startChat(String branch1, String branch2) throws CustomExceptions.ChatBranchBusyException, CustomExceptions.ChatBranchOfflineException {
-        // Check if branches are busy
+    // -------------------- Core Methods --------------------
+    public synchronized String startChat(String branch1, String branch2, Consumer<String> notifyCallback)
+            throws CustomExceptions.ChatBranchBusyException, CustomExceptions.ChatBranchOfflineException {
+
+        // Check if the initiating branch is busy
         if (branchActiveChat.containsKey(branch1)) {
             throw new CustomExceptions.ChatBranchBusyException("Your branch is already in an active chat.");
         }
+
+        // Check if target branch is busy
         if (branchActiveChat.containsKey(branch2)) {
             throw new CustomExceptions.ChatBranchBusyException("Target branch is currently busy.");
         }
 
-        // Check for offline (simulate offline by absence in active map)
-        if (branch1 == null || branch2 == null) {
-            throw new CustomExceptions.ChatBranchOfflineException("One of the branches is offline.");
+        // Check if target branch is connected/logged in
+        if (!connectedUsers.containsKey(branch2)) {  // <-- this map/list should track online branches
+            throw new CustomExceptions.ChatBranchOfflineException("Target branch is offline.");
         }
 
-        String chatId = "CHAT-" + (chatCounter++);
+        String chatId = "CHAT-" + chatCounter++;
         ChatSession session = new ChatSession(chatId, branch1, branch2);
         chatMap.put(chatId, session);
         branchActiveChat.put(branch1, chatId);
         branchActiveChat.put(branch2, chatId);
+        // Notify both branches
+        notifyCallback.accept(chatId + " started between " + branch1 + " and " + branch2);
+        // Notify the other branch if it has a listener
+        // Notify the other branch
+        ChatMessage msgForBranch2 = new ChatMessage(
+                "SYSTEM",            // senderName
+                branch1,             // senderBranch (who initiated)
+                "Branch " + branch1 + " joined chat " + chatId
+        );
+        session.notifyBranch(branch2, msgForBranch2);
+
 
         return chatId;
     }
 
-    /**
-     * Get a chat session by ID
-     */
+    private boolean isBranchOnline(String branchId) {
+        return branchId != null;
+    }
+
+    public void enqueueBranch(String requestingBranch, String targetBranch, Consumer<String> notifyCallback) {
+        waitingQueue.putIfAbsent(targetBranch, new ConcurrentLinkedQueue<>());
+        waitingQueue.get(targetBranch).add(new ChatRequest(requestingBranch, notifyCallback));
+    }
+
+    public void notifyQueuedBranches(String branchId) {
+        Queue<ChatRequest> queue = waitingQueue.get(branchId);
+        if (queue != null) {
+            while (!queue.isEmpty()) {
+                ChatRequest req = queue.poll();
+                try {
+                    String chatId = startChat(req.requestingBranch, branchId, req.notifyCallback);
+                    req.notifyCallback.accept("Chat started with " + branchId + ". ChatID: " + chatId);
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+
+
     public ChatSession getChatById(String chatId) {
         return chatMap.get(chatId);
     }
 
+    // ------------------ Connected Users ------------------
+    private final Map<String, String> connectedUsers = new ConcurrentHashMap<>(); // branchId -> sessionId
+
     /**
-     * List all active chats
+     * Adds a branch/user as connected.
+     * @param branchId the branch of the logged-in user
+     * @param sessionId the current session ID or connection identifier
      */
-    public Collection<ChatSession> listAllChats() {
-        return chatMap.values();
+    public void addConnectedUser(String branchId, String sessionId) {
+        connectedUsers.put(branchId, sessionId);
     }
 
     /**
-     * Call this when a branch becomes free to notify queued branches
+     * Removes a branch/user from connected list
      */
-    public void notifyQueuedBranches() {
-        while (!waitingQueue.isEmpty()) {
-            String nextBranch = waitingQueue.poll();
-            // Here you can implement logic to auto-assign or notify the client via listener
-            // Example: fire an event in ClientHandler to notify user
-        }
+    public void removeConnectedUser(String branchId) {
+        connectedUsers.remove(branchId);
     }
 
-    // -------------------- Chat Session --------------------
+    /**
+     * Checks if a branch/user is connected
+     */
+    public boolean isUserConnected(String branchId) {
+        return connectedUsers.containsKey(branchId);
+    }
+
+    // -------------------- Core Classes --------------------
+
     public static class ChatSession {
-        private String chatId;
-        private Set<String> branchesInvolved;
-        private List<ChatMessage> messages;
-        private boolean active;
-
-        // Listeners for live message updates
-        private Map<String, Consumer<ChatMessage>> branchListeners = new ConcurrentHashMap<>();
+        private final String chatId;
+        private final Set<String> branchesInvolved = Collections.synchronizedSet(new HashSet<>());
+        private final List<ChatMessage> messages = Collections.synchronizedList(new ArrayList<>());
+        private final Map<String, Consumer<ChatMessage>> branchListeners = new ConcurrentHashMap<>();
+        private boolean active = true;
 
         public ChatSession(String chatId, String branch1, String branch2) {
             this.chatId = chatId;
-            this.branchesInvolved = Collections.synchronizedSet(new HashSet<>());
-            this.branchesInvolved.add(branch1);
-            this.branchesInvolved.add(branch2);
-            this.messages = Collections.synchronizedList(new ArrayList<>());
-            this.active = true;
+            branchesInvolved.add(branch1);
+            branchesInvolved.add(branch2);
         }
 
-        public void addBranch(String branch) {
-            branchesInvolved.add(branch);
+        // Add branch with listener
+        public void addBranch(String branchId, Consumer<ChatMessage> listener) {
+            branchesInvolved.add(branchId);
+            branchListeners.put(branchId, listener);
         }
 
-        public void addMessage(ChatMessage msg) {
-            messages.add(msg);
-            // Notify all listeners
-            branchListeners.forEach((_, listener) -> listener.accept(msg));
-        }
-
+        // Register listener for an existing branch
         public void registerBranchListener(String branchId, Consumer<ChatMessage> listener) {
             branchListeners.put(branchId, listener);
         }
 
-        // Getters and setters
-        public String getChatId() { return chatId; }
+        public void notifyBranch(String branchId, ChatMessage msg) {
+            Consumer<ChatMessage> listener = branchListeners.get(branchId);
+            if (listener != null) {
+                listener.accept(msg);
+            }
+        }
+
+        public boolean hasListener(String branchId) {
+            return branchListeners.containsKey(branchId);
+        }
+
+        public void addMessage(ChatMessage msg) {
+            messages.add(msg);
+            branchListeners.values().forEach(listener -> listener.accept(msg));
+        }
+
         public Set<String> getBranchesInvolved() { return branchesInvolved; }
+        public List<ChatMessage> getMessages() { return messages; }
         public boolean isActive() { return active; }
         public void setActive(boolean active) { this.active = active; }
-        public List<ChatMessage> getMessages() { return messages; }
+        public String getChatId() { return chatId; }
     }
 
-    // -------------------- Chat Message --------------------
     public static class ChatMessage {
-        private String senderName;
-        private String senderBranch;
-        private String content;
-        private LocalDateTime timestamp;
+        private final String senderName;
+        private final String senderBranch;
+        private final String content;
+        private final LocalDateTime timestamp;
 
         public ChatMessage(String senderName, String senderBranch, String content) {
             this.senderName = senderName;
@@ -124,10 +171,19 @@ public class ChatService {
             this.timestamp = LocalDateTime.now();
         }
 
-        // Getters
-        public String getSenderName() { return senderName; }
+        public String getSenderName()   { return senderName; }
         public String getSenderBranch() { return senderBranch; }
-        public String getContent() { return content; }
+        public String getContent()      { return content; }
         public LocalDateTime getTimestamp() { return timestamp; }
+    }
+
+
+    public static class ChatRequest {
+        String requestingBranch;
+        Consumer<String> notifyCallback;
+        public ChatRequest(String requestingBranch, Consumer<String> notifyCallback) {
+            this.requestingBranch = requestingBranch;
+            this.notifyCallback = notifyCallback;
+        }
     }
 }
