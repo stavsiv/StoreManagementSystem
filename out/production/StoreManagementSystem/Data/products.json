@@ -105,14 +105,33 @@
   "price": 200.00,
   "quantityInStock": 90,
   "branchId": "B006"
-},
-  {
-    "productId": "P200",
-    "productName": "Shirt",
-    "category": "Clothing",
-    "price": 100.00,
-    "quantityInStock": 100,
-    "branchId": "B005"
-  }
+}
+,
+{
+  "productId": "P200",
+  "productName": "Shirt",
+  "category": "Clothing",
+  "price": 100.00,
+  "quantityInStock": 97,
+  "branchId": "B005"
+}
+,
+{
+  "productId": "P900",
+  "productName": "Snickers",
+  "category": "Shoes",
+  "price": 150.00,
+  "quantityInStock": 10,
+  "branchId": "B005"
+}
+,
+{
+  "productId": "P900",
+  "productName": "Snickers",
+  "category": "Shoes",
+  "price": 150.00,
+  "quantityInStock": 13,
+  "branchId": "B002"
+}
 
 ]

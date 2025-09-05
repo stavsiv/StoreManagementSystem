@@ -7,8 +7,8 @@ import java.util.Map;
 
 public class AuthService {
 
-    private Map<String, Employee> users;
-    private Map<String, Boolean> loggedInMap;
+    private final Map<String, Employee> users;
+    private final Map<String, Boolean> loggedInMap;
 
     public AuthService() {
         this.users = new HashMap<>();

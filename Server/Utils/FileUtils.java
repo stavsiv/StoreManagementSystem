@@ -84,7 +84,7 @@ public class FileUtils {
             if (c == '{') braceCount++;
             if (c == '}') braceCount--;
             current.append(c);
-            if (braceCount == 0 && current.length() > 0) {
+            if (braceCount == 0 && !current.isEmpty()) {
                 String obj = current.toString().trim();
                 if (!obj.isEmpty() && !obj.equals("[") && !obj.equals("]")) {
                     result.add(obj);

@@ -7,7 +7,7 @@ import java.util.List;
 
 public class ProductService {
 
-    private List<Product> productList;
+    private final List<Product> productList;
 
     public ProductService() {
         this.productList = new ArrayList<>();

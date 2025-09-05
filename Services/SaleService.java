@@ -9,8 +9,8 @@ import java.util.List;
 
 public class SaleService {
 
-    private ProductService productService;
-    private static List<SaleRecord> allSales = new ArrayList<>();
+    private final ProductService productService;
+    private static final List<SaleRecord> allSales = new ArrayList<>();
 
     public SaleService(ProductService productService) {
         if (productService == null) {

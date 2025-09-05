@@ -7,7 +7,7 @@ import java.util.Map;
 
 public class BranchService {
 
-    private Map<String, Branch> branches;
+    private final Map<String, Branch> branches;
 
     public BranchService() {
         this.branches = new HashMap<>();

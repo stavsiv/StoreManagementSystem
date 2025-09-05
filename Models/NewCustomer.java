@@ -4,7 +4,7 @@ import Exceptions.CustomExceptions;
 
 public class NewCustomer extends Customer {
 
-    private static final double DISCOUNT_RATE = 0.00; // No discount for new customers
+    //private static final double DISCOUNT_RATE = 0.00; // No discount for new customers
 
     // Constructor
     public NewCustomer(String fullName, String customerId, String phoneNumber) throws CustomExceptions.CustomerException {
@@ -18,7 +18,7 @@ public class NewCustomer extends Customer {
 
     @Override
     public double calculateFinalPrice(double totalPrice) {
-        return totalPrice * (1 - DISCOUNT_RATE);
+        return totalPrice;
     }
 
 }

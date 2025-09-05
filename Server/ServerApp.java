@@ -6,7 +6,6 @@ import Server.Utils.FileUtils;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.List;
 
 // Models
 import Models.Branch;
@@ -33,7 +32,6 @@ public class ServerApp {
     private final EmployeeService employeeService = new EmployeeService();
     private final ProductService productService = new ProductService();
     private final CustomerService customerService = new CustomerService();
-    private final BranchService branchService = new BranchService();
     //private final SaleService saleService = new SaleService();
     SaleService saleService = new SaleService(productService);
     private final ChatService chatService = new ChatService();
@@ -51,6 +49,7 @@ public class ServerApp {
         // Load branches
         for (String branchJson : FileUtils.readJsonObjectsFromFile(BRANCHES_FILE)) {
             Branch currBranch = FileUtils.parseBranchFromJson(branchJson);
+            BranchService branchService = new BranchService();
             if (currBranch != null) branchService.addBranch(currBranch);
         }
 

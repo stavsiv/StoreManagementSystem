@@ -5,8 +5,8 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class ClientApp {
-    private String host;
-    private int port;
+    private final String host;
+    private final int port;
 
     // Constructor
     public ClientApp(String host, int port) {

@@ -120,32 +120,32 @@ public class LogsService {
      * Returns the content of [Content_Types].xml for a docx file.
      */
     private static String getContentTypesXml() {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-                "<Types xmlns=\"http://schemas.openxmlformats.org/package/2006/content-types\">\n" +
-                "  <Default ContentType=\"application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml\" Extension=\"xml\"/>\n"
-                +
-                "  <Default ContentType=\"application/vnd.openxmlformats-package.relationships+xml\" Extension=\"rels\"/>\n"
-                +
-                "</Types>";
+        return """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+                  <Default ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml" Extension="xml"/>
+                  <Default ContentType="application/vnd.openxmlformats-package.relationships+xml" Extension="rels"/>
+                </Types>""";
     }
 
     /**
      * Returns the content of _rels/.rels for a docx file.
      */
     private static String getRelsXml() {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n" +
-                "  <Relationship Id=\"rId1\" Type=\"http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument\" Target=\"word/document.xml\"/>\n"
-                +
-                "</Relationships>";
+        return """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                  <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
+                </Relationships>""";
     }
 
     /**
      * Returns the content of word/_rels/document.xml.rels for a docx file.
      */
     private static String getDocumentRelsXml() {
-        return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
-                "<Relationships xmlns=\"http://schemas.openxmlformats.org/package/2006/relationships\">\n" +
-                "</Relationships>";
+        return """
+                <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+                <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+                </Relationships>""";
     }
 }

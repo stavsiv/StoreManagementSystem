@@ -7,7 +7,7 @@ import java.util.List;
 
 public class CustomerService {
 
-    private List<Customer> customersList;
+    private final List<Customer> customersList;
 
     public CustomerService() {
         this.customersList = new ArrayList<>();

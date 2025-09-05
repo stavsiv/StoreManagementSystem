@@ -271,7 +271,7 @@ public class ClientHandler implements Runnable {
 
     // 4. בדיקת אם Branch חלק מהצ'אט
     private boolean isBranchInChat(ChatService.ChatSession session, String branchId) {
-        return session.getBranchesInvolved().contains(branchId);
+        return !session.getBranchesInvolved().contains(branchId);
     }
 
     // 5. שליחת הודעת מערכת לכל המשתתפים, אפשר להחריג branch מסוים
@@ -608,8 +608,8 @@ public class ClientHandler implements Runnable {
         Map<String, List<SaleService.SaleRecord>> salesByType = new HashMap<>();
 
         for (SaleService.SaleRecord sr : allSales) {
-            salesByBranch.computeIfAbsent(sr.getBranch(), k -> new ArrayList<>()).add(sr);
-            salesByType.computeIfAbsent(sr.getProductType(), k -> new ArrayList<>()).add(sr);
+            salesByBranch.computeIfAbsent(sr.getBranch(), _ -> new ArrayList<>()).add(sr);
+            salesByType.computeIfAbsent(sr.getProductType(), _ -> new ArrayList<>()).add(sr);
         }
 
         String branchJson = buildJsonFromSalesMap(salesByBranch);
@@ -738,7 +738,7 @@ public class ClientHandler implements Runnable {
             return "ERROR: " + e.getMessage();
         }
 
-        boolean isNewJoin = !isBranchInChat(session, userBranch);
+        boolean isNewJoin = isBranchInChat(session, userBranch);
         if (isNewJoin) {
             broadcastSystemMessage(session, "Branch " + userBranch + " joined the chat.", userBranch);
         }
@@ -792,7 +792,7 @@ public class ClientHandler implements Runnable {
             return "[ERROR] " + e.getMessage();
         }
 
-        if (!isBranchInChat(session, userBranch))
+        if (isBranchInChat(session, userBranch))
             return "[ERROR] Your branch is not part of chat " + chatId;
 
         try {

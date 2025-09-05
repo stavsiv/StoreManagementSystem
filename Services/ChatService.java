@@ -88,11 +88,6 @@ public class ChatService {
 
         // Case 1: no participants left → close chat
         if (session.getBranchesInvolved().isEmpty()) {
-            ChatMessage endMsg = new ChatMessage(
-                    "SYSTEM",
-                    "SYSTEM",
-                    "Chat " + chatId + " has ended (no participants left)"
-            );
             chatMap.remove(chatId);
             System.out.println("Chat " + chatId + " closed (no participants left)");
             return;
@@ -130,12 +125,6 @@ public class ChatService {
         session.getBranchesInvolved().forEach(this::notifyQueuedBranches);
     }
 
-//    public void enqueueBranch(String requestingBranch, String targetBranch, Consumer<String> notifyCallback) {
-//        Queue<ChatRequest> queue = waitingQueue.computeIfAbsent(targetBranch, k -> new ConcurrentLinkedQueue<>());
-//        boolean alreadyQueued = queue.stream().anyMatch(req -> req.requestingBranch.equals(requestingBranch));
-//        if (!alreadyQueued) queue.add(new ChatRequest(requestingBranch, notifyCallback));
-//    }
-
     public void notifyQueuedBranches(String branchId) {
         Queue<ChatRequest> queue = waitingQueue.get(branchId);
         if (queue == null) return;
@@ -168,6 +157,10 @@ public class ChatService {
     public ChatSession getChatById(String chatId) { return chatMap.get(chatId); }
 
     public void addConnectedUser(String branchId, String sessionId, Consumer<String> notifyCallback) {
+        if (connectedUsers.containsKey(branchId)) {
+            notifyCallback.accept("Your branch is already connected from another client.");
+            return;
+        }
         connectedUsers.put(branchId, sessionId);
         branchNotifyCallbacks.put(branchId, notifyCallback);
 
@@ -183,7 +176,7 @@ public class ChatService {
     }
 
     public void storeInvite(String targetBranch, String fromBranch) {
-        pendingChatInvites.computeIfAbsent(targetBranch, k -> new ConcurrentLinkedQueue<>()).add(fromBranch);
+        pendingChatInvites.computeIfAbsent(targetBranch, _ -> new ConcurrentLinkedQueue<>()).add(fromBranch);
         Consumer<String> cb = branchNotifyCallbacks.get(targetBranch);
         if (cb != null) cb.accept( "Chat invite from " + fromBranch + ". You are currently busy. You can contact them once you’re available.");
     }
