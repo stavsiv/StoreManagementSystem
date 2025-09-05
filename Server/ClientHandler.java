@@ -17,7 +17,7 @@ import java.util.*;
  */
 public class ClientHandler implements Runnable {
     private final PrintWriter out;
-    private Socket clientSocket = null;
+    private final Socket clientSocket ;
     private final AuthService authService;
     private final EmployeeService employeeService;
     private final ProductService productService;
