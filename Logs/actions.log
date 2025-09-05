@@ -63,3 +63,9 @@
 [2025-08-30 18:21] CHAT: Employee 'Osher Cohen' (branch='B005') JOINED chatId='CHAT-1000'
 [2025-08-30 18:21] CHAT: Employee 'Lidor Stamker' (branch='B003') SENT a message to chatId='CHAT-1000': "HII THEREEE"
 [2025-08-30 18:22] CHAT: Employee 'Osher Cohen' (branch='B005') SENT a message to chatId='CHAT-1000': "HELFDNF"
+[2025-09-05 19:27] Customer added: Rachel Green (Id=000000046, Type=VIP)
+[2025-09-05 19:28] SELL: Employee 'Osher Cohen' sold product 'P200' qty=3 to customer 'Rachel Green'
+[2025-09-05 19:30] PURCHASE: Employee 'Osher Cohen' created new product 'Snickers' (id=P900) qty=10
+[2025-09-05 19:31] Customer added: Monica Geller (Id=000000047, Type=NEW)
+[2025-09-05 19:33] PURCHASE: Employee 'Juliet Snow' created new product 'Snickers' (id=P900) qty=15
+[2025-09-05 19:33] SELL: Employee 'Juliet Snow' sold product 'P900' qty=2 to customer 'Monica Geller'

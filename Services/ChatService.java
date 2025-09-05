@@ -3,8 +3,8 @@ package Services;
 import Exceptions.CustomExceptions;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 public class ChatService {
@@ -14,52 +14,54 @@ public class ChatService {
     private final Map<String, Queue<ChatRequest>> waitingQueue = new ConcurrentHashMap<>();
     private final Map<String, Queue<String>> pendingChatInvites = new ConcurrentHashMap<>();
     private final Map<String, String> connectedUsers = new ConcurrentHashMap<>();
-    private Map<String, Consumer<String>> branchNotifyCallbacks = new ConcurrentHashMap<>();
-    private int chatCounter = 1000;
-
-    public Collection<ChatSession> listAllChats() { return chatMap.values(); }
+    private final Map<String, Consumer<String>> branchNotifyCallbacks = new ConcurrentHashMap<>();
+    private final AtomicInteger chatCounter = new AtomicInteger(1000);
 
     // -------------------- Core Methods --------------------
+    public Collection<ChatSession> listAllChats() { return chatMap.values(); }
+
     public synchronized String startChat(String branch1, String branch2, Consumer<String> notifyCallback1)
             throws CustomExceptions.ChatBranchBusyException {
-
-        if (branchActiveChat.containsKey(branch1))
-            throw new CustomExceptions.ChatBranchBusyException("Your branch is already in an active chat.");
+        if (branchActiveChat.containsKey(branch1)) {
+            throw new CustomExceptions.ChatBranchBusyException("You're already in another chat. Finish it before starting a new one.");
+        }
 
         if (branchActiveChat.containsKey(branch2)) {
-            if (notifyCallback1 != null)
-                notifyCallback1.accept("Target branch " + branch2 + " is busy. You can try later. Invite stored for later.");
+            storeInvite(branch2, branch1);
+            String notifyMsg = "[NOTIFY] Branch " + branch2 + " is currently busy. Your chat invitation has been saved and will be delivered later.";
+            if (notifyCallback1 != null) notifyCallback1.accept(notifyMsg);
+            return notifyMsg;
+        }
 
-            pendingChatInvites.computeIfAbsent(branch2, k -> new ConcurrentLinkedQueue<>())
-                    .add(branch1 + " tried to start a chat with you while you were busy.");
-
-            return null;
+        if (!connectedUsers.containsKey(branch2)) {
+            storeInvite(branch2, branch1);
+            String notifyMsg = "[NOTIFY] Branch " + branch2 + " is currently offline. Your chat invitation has been saved and will be delivered later.";
+            if (notifyCallback1 != null) notifyCallback1.accept(notifyMsg);
+            return notifyMsg;
         }
 
         Consumer<String> notifyCallback2 = branchNotifyCallbacks.get(branch2);
+        String chatId = createChat(branch1, branch2, notifyCallback1, notifyCallback2);
+        ChatSession session = getChatById(chatId);
+        ChatMessage systemMsg = new ChatMessage("SYSTEM", "SYSTEM",
+                "Chat started between " + branch1 + " and " + branch2);
+        session.addMessage(systemMsg);
 
-        if (!connectedUsers.containsKey(branch2)) {
-            pendingChatInvites.computeIfAbsent(branch2, k -> new ConcurrentLinkedQueue<>())
-                    .add(branch1 + " invited you to chat.");
-            return null;
-        }
-
-        return createChat(branch1, branch2, notifyCallback1, notifyCallback2);
+        return "[NOTIFY] Chat started with " + branch2 + ". You can now chat!, type SEND_MSG <Message...>. ChatID: " + chatId;
     }
 
     private String createChat(String branch1, String branch2, Consumer<String> notifyCallback1, Consumer<String> notifyCallback2) {
-        String chatId = "CHAT-" + chatCounter++;
+        String chatId = "CHAT-" + chatCounter.getAndIncrement();
         ChatSession session = new ChatSession(chatId, branch1, branch2);
         chatMap.put(chatId, session);
         branchActiveChat.put(branch1, chatId);
-        if (branch2 != null) branchActiveChat.put(branch2, chatId);
+        branchActiveChat.put(branch2, chatId);
 
-        notifyCallback1.accept("Chat " + chatId + " started with " + branch2 + ". You can send messages now.");
+        if (notifyCallback1 != null)
+            notifyCallback1.accept("You can now send messages to branch " + branch2 + ".");
 
-        if (notifyCallback2 != null) {
-            notifyCallback2.accept("You received a chat request from branch " + branch1 +
-                    " on chat: " + chatId + ". Type JOIN_CHAT " + chatId + " to join. Also use SHOW_CHAT to check messages.");
-        }
+        if (notifyCallback2 != null)
+            notifyCallback2.accept("Branch " + branch1 + " invited you to chat. Type JOIN_CHAT " + chatId + " to join.");
 
         return chatId;
     }
@@ -69,21 +71,43 @@ public class ChatService {
         if (session == null || !session.isActive())
             throw new CustomExceptions.ChatInactiveException("Chat " + chatId + " not found or inactive");
 
-        Set<String> participantsBefore = new HashSet<>(session.getBranchesInvolved());
-        boolean removed = session.getBranchesInvolved().remove(branchId);
-        if (!removed)
+        if (!session.getBranchesInvolved().contains(branchId))
             throw new CustomExceptions.ChatException("Branch " + branchId + " not found in chat " + chatId);
 
-        ChatMessage leaveMsg = new ChatMessage("SYSTEM", "SYSTEM", "Branch " + branchId + " has left chat " + chatId + ". To end the chat, type END_CHAT");
-        session.getBranchesInvolved().forEach(b -> session.notifyBranch(b, leaveMsg));
+        // Notify all others first
+        ChatMessage leaveMsg = new ChatMessage(
+                "SYSTEM",
+                "SYSTEM",
+                "Branch " + branchId + " has left chat " + chatId
+        );
+        session.broadcastToOthers(leaveMsg, branchId);
 
+        // Remove branch
+        session.removeBranch(branchId);
         branchActiveChat.remove(branchId);
 
+        // Case 1: no participants left → close chat
         if (session.getBranchesInvolved().isEmpty()) {
+            ChatMessage endMsg = new ChatMessage(
+                    "SYSTEM",
+                    "SYSTEM",
+                    "Chat " + chatId + " has ended (no participants left)"
+            );
             chatMap.remove(chatId);
-            ChatMessage endMsg = new ChatMessage("SYSTEM", "SYSTEM", "Chat " + chatId + " has ended (no participants left)");
-            participantsBefore.forEach(b -> session.notifyBranch(b, endMsg));
             System.out.println("Chat " + chatId + " closed (no participants left)");
+            return;
+        }
+
+        // Case 2: only one participant left → notify them they are alone
+        if (session.getBranchesInvolved().size() == 1) {
+            String remainingBranch = session.getBranchesInvolved().iterator().next();
+            ChatMessage aloneMsg = new ChatMessage(
+                    "SYSTEM",
+                    "SYSTEM",
+                    "You are the only participant left in chat " + chatId +
+                            ". Type END_CHAT to close it."
+            );
+            session.notifyBranch(remainingBranch, aloneMsg);
         }
     }
 
@@ -92,17 +116,25 @@ public class ChatService {
         if (session == null || !session.isActive()) return;
 
         session.setActive(false);
-        session.getBranchesInvolved().forEach(branchActiveChat::remove);
-
+        // Send end message to all participants
         ChatMessage endMsg = new ChatMessage("SYSTEM", "SYSTEM", "Chat " + chatId + " has ended.");
         session.getBranchesInvolved().forEach(b -> session.notifyBranch(b, endMsg));
+
+        // Remove active chat status
+        session.getBranchesInvolved().forEach(branchActiveChat::remove);
+
+        // Remove chat from map
+        chatMap.remove(chatId);
+
+        // Notify queued branches
         session.getBranchesInvolved().forEach(this::notifyQueuedBranches);
     }
 
-    public void enqueueBranch(String requestingBranch, String targetBranch, Consumer<String> notifyCallback) {
-        waitingQueue.computeIfAbsent(targetBranch, k -> new ConcurrentLinkedQueue<>())
-                .add(new ChatRequest(requestingBranch, notifyCallback));
-    }
+//    public void enqueueBranch(String requestingBranch, String targetBranch, Consumer<String> notifyCallback) {
+//        Queue<ChatRequest> queue = waitingQueue.computeIfAbsent(targetBranch, k -> new ConcurrentLinkedQueue<>());
+//        boolean alreadyQueued = queue.stream().anyMatch(req -> req.requestingBranch.equals(requestingBranch));
+//        if (!alreadyQueued) queue.add(new ChatRequest(requestingBranch, notifyCallback));
+//    }
 
     public void notifyQueuedBranches(String branchId) {
         Queue<ChatRequest> queue = waitingQueue.get(branchId);
@@ -118,7 +150,10 @@ public class ChatService {
                 } else {
                     storeInvite(branchId, req.requestingBranch);
                 }
-            } catch (Exception ignored) {}
+            } catch (Exception e) {
+                System.err.println("Failed to notify queued branch: " + e.getMessage());
+                e.printStackTrace();
+            }
         }
     }
 
@@ -130,15 +165,6 @@ public class ChatService {
         pendingChatInvites.remove(branchId);
     }
 
-//    public String checkPendingInvites(String branchId) {
-//        Queue<String> invites = pendingChatInvites.getOrDefault(branchId, new ConcurrentLinkedQueue<>());
-//        if (invites.isEmpty()) return "No pending chat invites.";
-//
-//        StringBuilder sb = new StringBuilder("Pending chat invites:\n");
-//        while (!invites.isEmpty()) sb.append(invites.poll()).append("\n");
-//        return sb.toString();
-//    }
-
     public ChatSession getChatById(String chatId) { return chatMap.get(chatId); }
 
     public void addConnectedUser(String branchId, String sessionId, Consumer<String> notifyCallback) {
@@ -146,61 +172,55 @@ public class ChatService {
         branchNotifyCallbacks.put(branchId, notifyCallback);
 
         Queue<String> invites = pendingChatInvites.get(branchId);
-        if (invites == null || invites.isEmpty()) {
-            notifyCallback.accept("No pending chat invites.");
-        } else {
+        if (invites != null && !invites.isEmpty()) {
             StringBuilder sb = new StringBuilder();
             while (!invites.isEmpty()) sb.append(invites.poll()).append(" ");
             notifyCallback.accept("Pending chat invite from branch: " + sb.toString().trim());
             pendingChatInvites.remove(branchId);
+        } else {
+            notifyCallback.accept("No pending chat invites.");
         }
     }
-//
-//    public void removeConnectedUser(String branchId) {
-//        connectedUsers.remove(branchId);
-//        branchNotifyCallbacks.remove(branchId);
-//    }
 
     public void storeInvite(String targetBranch, String fromBranch) {
         pendingChatInvites.computeIfAbsent(targetBranch, k -> new ConcurrentLinkedQueue<>()).add(fromBranch);
-
         Consumer<String> cb = branchNotifyCallbacks.get(targetBranch);
-        if (cb != null) {
-            cb.accept("[NOTIFY] Chat invite from " + fromBranch);
-        }
+        if (cb != null) cb.accept( "Chat invite from " + fromBranch + ". You are currently busy. You can contact them once you’re available.");
     }
 
-  //  public boolean isUserConnected(String branchId) { return connectedUsers.containsKey(branchId); }
-
-    // -------------------- Core Classes --------------------
-
+    // -------------------- ChatSession --------------------
     public static class ChatSession {
         private final String chatId;
         private final Set<String> branchesInvolved = Collections.synchronizedSet(new HashSet<>());
         private final List<ChatMessage> messages = Collections.synchronizedList(new ArrayList<>());
         private final Map<String, Consumer<ChatMessage>> branchListeners = new ConcurrentHashMap<>();
-        private final Map<String, Queue<ChatMessage>> pendingMessages = new ConcurrentHashMap<>();
         private boolean active = true;
 
         public ChatSession(String chatId, String branch1, String branch2) {
             this.chatId = chatId;
             branchesInvolved.add(branch1);
             branchesInvolved.add(branch2);
-            pendingMessages.put(branch1, new ConcurrentLinkedQueue<>());
-            pendingMessages.put(branch2, new ConcurrentLinkedQueue<>());
         }
 
-        public void addBranch(String branchId, Consumer<ChatMessage> listener) {
+        public synchronized void addBranch(String branchId, Consumer<ChatMessage> listener) {
             branchesInvolved.add(branchId);
             branchListeners.put(branchId, listener);
         }
 
-        public void removeBranch(String branchId) {
+        public synchronized void removeBranch(String branchId) {
+            branchesInvolved.remove(branchId);
             branchListeners.remove(branchId);
         }
 
-        public void registerBranchListener(String branchId, Consumer<ChatMessage> listener) {
-            branchListeners.put(branchId, listener);
+        public void broadcastToOthers(ChatMessage msg, String excludingBranch) {
+            for (String branch : branchesInvolved) {
+                if (!branch.equals(excludingBranch)) notifyBranch(branch, msg);
+            }
+        }
+
+        public void addMessage(ChatMessage msg) {
+            messages.add(msg);
+            branchListeners.values().forEach(listener -> listener.accept(msg));
         }
 
         public void notifyBranch(String branchId, ChatMessage msg) {
@@ -208,17 +228,10 @@ public class ChatService {
             if (listener != null) listener.accept(msg);
         }
 
-        public boolean hasListener(String branchId) { return branchListeners.containsKey(branchId); }
-
-        public void addMessage(ChatMessage msg) {
-            messages.add(msg);
-            branchListeners.values().forEach(listener -> listener.accept(msg));
-        }
-
-        public Set<String> getBranchesInvolved() { return branchesInvolved; }
-        public List<ChatMessage> getMessages() { return messages; }
         public boolean isActive() { return active; }
         public void setActive(boolean active) { this.active = active; }
+        public Set<String> getBranchesInvolved() { return branchesInvolved; }
+        public List<ChatMessage> getMessages() { return messages; }
         public String getChatId() { return chatId; }
     }
 
