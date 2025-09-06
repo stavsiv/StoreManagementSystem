@@ -1,0 +1,16 @@
+[
+{
+  "chatId": "CHAT-1000",
+  "date": "2025-09-06",
+  "time": "23:47",
+  "messages": [
+    "SYSTEM (SYSTEM): Chat started between B002 and B005",
+    "Juliet Snow (B002): Hi, did you check the stock for the new T-shirt collection?",
+    "Osher Cohen (B005): Yes, we currently have 50 units of the red T-shirts and 30 units of the blue ones.",
+    "Juliet Snow (B002): Great. What about the pending online orders for these items?",
+    "Osher Cohen (B005): There are 10 red T-shirts and 5 blue T-shirts pending shipment.",
+    "Juliet Snow (B002): Okay, update the system so we reserve these for shipment tomorrow.",
+    "Osher Cohen (B005): Will do."
+  ]
+}
+]
