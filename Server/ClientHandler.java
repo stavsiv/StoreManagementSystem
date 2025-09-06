@@ -809,7 +809,7 @@ public class ClientHandler implements Runnable {
                 }
             }
 
-            return "[NOTIFY] You left the chat " + chatId;
+            return "[NOTIFY] You left the chat " + chatId + ". Type 'Menu' to see available commands, or 'Exit' to exit.";
 
         } catch (CustomExceptions.ChatException e) {
             return "[ERROR] " + e.getMessage();
@@ -818,11 +818,37 @@ public class ClientHandler implements Runnable {
 
     // END CHAT
     private String handleEndChat() {
-        if (currentChatId == null) return "ERROR: No chat selected.";
-        chatService.endChat(currentChatId);
-        String ended = currentChatId;
-        currentChatId = null;
-        return "Chat " + ended + " has been ended.";
+        try {
+            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
+            BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            out.println("Do you want to save the chat history? (yes/no)");
+
+            String response;
+            while (true) {
+                response = in.readLine();
+                if (response == null) continue;
+
+                if (response.equalsIgnoreCase("yes")) {
+                    chatService.saveChatHistory(currentChatId);
+                    out.println("Chat history saved. Chat ended.");
+                    break;
+                } else if (response.equalsIgnoreCase("no")) {
+                    out.println("Chat ended without saving.");
+                    break;
+                } else {
+                    out.println("Please answer yes or no.");
+                }
+            }
+
+            chatService.endChat(currentChatId);
+
+        } catch (IOException e) {
+            e.printStackTrace();
+            return "Error handling chat end: " + e.getMessage();
+        }
+        logAction(String.format("Chat history saved for chat ID=%s by employee %s (Branch=%s)",
+                currentChatId, loggedInEmployee.getFullName(), loggedInEmployee.getBranchId()));
+        return "Type 'Menu' to see available commands, or 'Exit' to exit.";
     }
 
     // SHOW CHAT

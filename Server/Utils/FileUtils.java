@@ -10,25 +10,6 @@ import Models.Role;
 
 public class FileUtils {
 
-    // Generic File Load
-    /**
-     * Loads a list of objects from a file using a parser function.
-     * @param filePath Path to the file
-     * @param parser Function that converts JSON string to object of type T
-     * @param <T> Type of objects
-     * @return List of loaded objects
-     */
-//    public static <T> List<T> loadFromFile(String filePath, Function<String, T> parser) {
-//        List<String> objects = readJsonObjectsFromFile(filePath);
-//        List<T> result = new ArrayList<>();
-//        for (String json : objects) {
-//            T obj = parser.apply(json);
-//            if (obj != null) result.add(obj);
-//        }
-//        System.out.println("Loaded " + result.size() + " items from file: " + filePath);
-//        return result;
-//    }
-
     // Generic File Save
     /**
      * Saves a list of objects to a file using a serializer function.
@@ -137,6 +118,7 @@ public class FileUtils {
         return 0.0;
     }
 
+
     // Parses for each type
     /** Parses a Branch from JSON string */
     public static Branch parseBranchFromJson(String json) throws CustomExceptions.BranchException {
@@ -198,5 +180,4 @@ public class FileUtils {
             default -> null;
         };
     }
-
 }

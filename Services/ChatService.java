@@ -1,7 +1,12 @@
 package Services;
 
 import Exceptions.CustomExceptions;
+import Server.Utils.FileUtils;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -47,7 +52,7 @@ public class ChatService {
                 "Chat started between " + branch1 + " and " + branch2);
         session.addMessage(systemMsg);
 
-        return "[NOTIFY] Chat started with " + branch2 + ". You can now chat!, type SEND_MSG <Message...>. ChatID: " + chatId;
+        return "[NOTIFY] Chat started with " + branch2 + ". You can chat now! type SEND_MSG <Message...>. ChatID: " + chatId;
     }
 
     private String createChat(String branch1, String branch2, Consumer<String> notifyCallback1, Consumer<String> notifyCallback2) {
@@ -180,6 +185,46 @@ public class ChatService {
         Consumer<String> cb = branchNotifyCallbacks.get(targetBranch);
         if (cb != null) cb.accept( "Chat invite from " + fromBranch + ". You are currently busy. You can contact them once you’re available.");
     }
+
+public void saveChatHistory(String chatId) {
+    ChatSession session = getChatById(chatId);
+    if (session == null) return;
+
+    Map<String, Object> chatJson = new LinkedHashMap<>();
+    chatJson.put("chatId", session.getChatId());
+    chatJson.put("date", LocalDate.now().toString());
+    chatJson.put("time", LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
+    List<String> messages = session.getMessages().stream()
+            .map(msg -> msg.getSenderName() + " (" + msg.getSenderBranch() + "): " + msg.getContent())
+            .toList();
+    chatJson.put("messages", messages);
+
+    List<String> allChatsJson = FileUtils.readJsonObjectsFromFile("Data/chat_history.json");
+    List<String> updatedChats = new ArrayList<>();
+
+    for (String chat : allChatsJson) {
+        if (chat != null && !chat.isBlank()) {
+            updatedChats.add(chat);
+        }
+    }
+
+    StringBuilder sb = new StringBuilder("{\n");
+    sb.append("  \"chatId\": \"").append(chatJson.get("chatId")).append("\",\n");
+    sb.append("  \"date\": \"").append(chatJson.get("date")).append("\",\n");
+    sb.append("  \"time\": \"").append(chatJson.get("time")).append("\",\n");
+    sb.append("  \"messages\": [\n");
+    List<String> msgs = (List<String>) chatJson.get("messages");
+    for (int i = 0; i < msgs.size(); i++) {
+        sb.append("    \"").append(msgs.get(i).replace("\"", "\\\"")).append("\"");
+        if (i < msgs.size() - 1) sb.append(",");
+        sb.append("\n");
+    }
+    sb.append("  ]\n");
+    sb.append("}");
+
+    updatedChats.add(sb.toString());
+    FileUtils.saveToFile("Data/chat_history.json", updatedChats, s -> s);
+}
 
     // -------------------- ChatSession --------------------
     public static class ChatSession {

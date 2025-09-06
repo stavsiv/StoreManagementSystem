@@ -15,15 +15,6 @@ import Models.Customer;
 
 // Services
 import Services.*;
-//import Services.SaleService;
-
-// Chat Service
-//import Services.ChatService;
-//import Services.ChatService.ChatSession;
-//import Services.ChatService.ChatMessage;
-
-// NEW SERVICE for converting logs to doc
-//import Services.LogsService;
 
 public class ServerApp {
     // Initialize services
@@ -32,7 +23,6 @@ public class ServerApp {
     private final EmployeeService employeeService = new EmployeeService();
     private final ProductService productService = new ProductService();
     private final CustomerService customerService = new CustomerService();
-    //private final SaleService saleService = new SaleService();
     SaleService saleService = new SaleService(productService);
     private final ChatService chatService = new ChatService();
 
@@ -41,6 +31,8 @@ public class ServerApp {
     public static final String EMPLOYEES_FILE = "Data/employees.json";
     public static final String PRODUCTS_FILE = "Data/products.json";
     public static final String CUSTOMERS_FILE = "Data/customers.json";
+    //private static final String CHAT_LOGS_FILE = "Data/chats.json";
+
 
     public ServerApp(int port) throws CustomExceptions.BranchException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException, CustomExceptions.ProductException {
         this.port = port;
