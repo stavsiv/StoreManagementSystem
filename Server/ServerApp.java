@@ -31,8 +31,6 @@ public class ServerApp {
     public static final String EMPLOYEES_FILE = "Data/employees.json";
     public static final String PRODUCTS_FILE = "Data/products.json";
     public static final String CUSTOMERS_FILE = "Data/customers.json";
-    //private static final String CHAT_LOGS_FILE = "Data/chats.json";
-
 
     public ServerApp(int port) throws CustomExceptions.BranchException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException, CustomExceptions.ProductException {
         this.port = port;

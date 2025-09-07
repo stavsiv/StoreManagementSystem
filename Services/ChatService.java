@@ -21,6 +21,7 @@ public class ChatService {
     private final Map<String, String> connectedUsers = new ConcurrentHashMap<>();
     private final Map<String, Consumer<String>> branchNotifyCallbacks = new ConcurrentHashMap<>();
     private final AtomicInteger chatCounter = new AtomicInteger(1000);
+    private static final String CHAT_HISTORY_FILE = "Data/chat_history.json";
 
     // -------------------- Core Methods --------------------
     public Collection<ChatSession> listAllChats() { return chatMap.values(); }
@@ -199,7 +200,7 @@ public void saveChatHistory(String chatId) {
             .toList();
     chatJson.put("messages", messages);
 
-    List<String> allChatsJson = FileUtils.readJsonObjectsFromFile("Data/chat_history.json");
+    List<String> allChatsJson = FileUtils.readJsonObjectsFromFile(CHAT_HISTORY_FILE);
     List<String> updatedChats = new ArrayList<>();
 
     for (String chat : allChatsJson) {
@@ -223,7 +224,7 @@ public void saveChatHistory(String chatId) {
     sb.append("}");
 
     updatedChats.add(sb.toString());
-    FileUtils.saveToFile("Data/chat_history.json", updatedChats, s -> s);
+    FileUtils.saveToFile(CHAT_HISTORY_FILE, updatedChats, s -> s);
 }
 
     // -------------------- ChatSession --------------------
