@@ -10,6 +10,8 @@ import java.net.Socket;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * Handles client sessions and commands in the Store Management System.
@@ -30,6 +32,15 @@ public class ClientHandler implements Runnable {
     private Employee loggedInEmployee;
     private String currentUsername;
     private String currentChatId = null;
+
+    /** NEW: persist this TCP session’s server-side sessionId (for ChatService presence & idle pool). */
+    private String currentSessionId = null;
+
+    private final Map<String, Consumer<ChatService.ChatMessage>> chatListeners = new ConcurrentHashMap<>();
+
+    private enum RequesterJoinPolicy { BLOCK, AUTO_LEAVE, AUTO_END_BOTH }
+    private static final RequesterJoinPolicy REQUESTER_JOIN_POLICY = RequesterJoinPolicy.BLOCK; // pick your default
+
 
     public ClientHandler(Socket clientSocket,
                          AuthService authService,
@@ -63,6 +74,7 @@ public class ClientHandler implements Runnable {
         } finally {
             if (currentUsername != null) authService.logout(currentUsername);
             try {
+                if (currentSessionId != null) chatService.disconnect(currentSessionId);
                 clientSocket.close();
             } catch (IOException ex) {
                 ex.printStackTrace();
@@ -117,12 +129,29 @@ public class ClientHandler implements Runnable {
                 this.currentUsername = username;
                 out.println("Login successful! Hello, " + loggedInEmployee.getFullName() +
                         " (Role: " + loggedInEmployee.getRole() + ", Branch: " + loggedInEmployee.getBranchId() + ")");
-                String currentSessionId = UUID.randomUUID().toString();
+                this.currentSessionId = UUID.randomUUID().toString();
+                out.println("[DEBUG] Your sessionId: " + currentSessionId);
+                out.println("Type 'Menu' to see available commands, or 'Exit' to exit.");
+
                 String branchId = loggedInEmployee.getBranchId();
-                chatService.addConnectedUser(
-                        branchId,
-                        currentSessionId,
-                        msg -> out.println("[NOTIFY] " + msg)
+                chatService.connect(
+                    this.currentSessionId,
+                    branchId,
+                    loggedInEmployee.getEmployeeId(),
+                    loggedInEmployee.getFullName() + " (" + loggedInEmployee.getRole() + ", " + branchId + ")",
+
+                    // was: msg -> out.println("[NOTIFY] " + msg)
+                    msg -> {
+                        if (msg != null && msg.startsWith("[EVENT] CHAT_ENDED ")) {
+                            String endedId = msg.substring("[EVENT] CHAT_ENDED ".length()).trim();
+                            if (endedId.equals(currentChatId)) {
+                                currentChatId = null;
+                            }
+                            // out.println("[INFO] Chat?? " + endedId + " ended.");
+                        } else {
+                            out.println("[NOTIFY] " + msg);
+                        }
+                    }
                 );
 
                 return true;
@@ -140,7 +169,7 @@ public class ClientHandler implements Runnable {
 
     // Command Handling
     private boolean handleCommands(BufferedReader in, PrintWriter out) throws IOException {
-        out.println("Type 'Menu' to see available commands, or 'Exit' to exit.");
+        
 
         String line;
         while ((line = in.readLine()) != null) {
@@ -167,7 +196,7 @@ public class ClientHandler implements Runnable {
     private String handleCommand(String line) throws CustomExceptions.ProductException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException {
         if (line.isEmpty()) return "";
 
-        if (line.toUpperCase().startsWith("SEND_MSG")) return handleSendMsg(line);
+        if (line.toUpperCase().startsWith("SEND")) return handleSendMsg(line);
 
         String[] parts = line.split(" ");
         String command = parts[0].toUpperCase().replace(" ", "_");
@@ -184,13 +213,22 @@ public class ClientHandler implements Runnable {
             case "ADD_CUSTOMER" -> addCustomerCommand(parts);
             case "SHOW_CUSTOMERS" -> showCustomers();
             case "LOGS_TO_WORD" -> logsToWordCommand();
-            case "CHECK_INVITES" -> handleCheckInvites();
-            case "START_CHAT" -> handleStartChat(parts);
-            case "JOIN_CHAT" -> handleJoinChat(parts);
+
+            // --- Chat (NEW FLOW) ---
+            // case "CHECK_INVITES" -> handleCheckInvites();
+            case "REQUEST" -> handleRequestChat(parts);
+            case "ACCEPT" -> handleAcceptChatOffer(parts);
+            case "BEGIN" -> handleJoinChatRequester(parts);
+            case "JOIN" -> handleJoinExistingChat(parts);
             case "SHOW_CHAT" -> handleShowChat();
             case "LEAVE_CHAT" -> handleLeaveChat(parts);
+            case "LIVE_CHATS" -> handleListJoinableChats();
             case "END_CHAT" -> handleEndChat();
             case "LIST_CHATS" -> listChatsCommand();
+
+
+
+            // case "JOIN_CHAT" -> handleJoinChat(parts);
             case "LOGOUT" -> {
                 authService.logout(currentUsername);
                 loggedInEmployee = null;
@@ -226,10 +264,13 @@ public class ClientHandler implements Runnable {
         sb.append("LOGOUT - logout\n");
         sb.append("EXIT - close connection\n");
         sb.append("--- Chat Commands ---\n");
-        sb.append("CHECK_INVITES\n");
-        sb.append("START_CHAT <BranchId>\n");
-        sb.append("JOIN_CHAT <ChatId>\n");
-        sb.append("SEND_MSG <Message...>\n");
+        // sb.append("CHECK_INVITES\n");
+        sb.append("REQUEST <BranchId>\n");
+        sb.append("BEGIN <ChatId>\n");
+        sb.append("ACCEPT  (accept the current offer)\n");
+        sb.append("JOIN <ChatId>\n");
+        sb.append("LIVE_CHATS - list chats you can JOIN <ChatId>\n");
+        sb.append("SEND <Message...>\n");
         sb.append("SHOW_CHAT\n");
         sb.append("LEAVE_CHAT <ChatId>\n");
         sb.append("END_CHAT\n");
@@ -269,34 +310,10 @@ public class ClientHandler implements Runnable {
         return session;
     }
 
-    // 4. בדיקת אם Branch חלק מהצ'אט
-    private boolean isBranchInChat(ChatService.ChatSession session, String branchId) {
-        return !session.getBranchesInvolved().contains(branchId);
-    }
 
-    // 5. שליחת הודעת מערכת לכל המשתתפים, אפשר להחריג branch מסוים
-    private void broadcastSystemMessage(ChatService.ChatSession session, String content, String excludeBranch) {
-        ChatService.ChatMessage msg = new ChatService.ChatMessage("SYSTEM", "SYSTEM", content);
-        for (String branch : session.getBranchesInvolved()) {
-            if (!branch.equals(excludeBranch)) {
-                session.notifyBranch(branch, msg);
-            }
-        }
-        session.addMessage(msg);
-    }
 
-    // 6. הרשמה פשוטה של listener חדש
-    private void registerChatListener(ChatService.ChatSession session) {
-        String userBranch = loggedInEmployee.getBranchId();
-        session.addBranch(userBranch, msg -> {
-            try {
-                PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
-                out.println(formatChatMessage(msg));
-            } catch (Exception e) {
-                System.err.println("Failed to process incoming chat message: " + e.getMessage());
-            }
-        });
-    }
+
+
 
     // Employee commands
     private String addEmployeeCommand(String[] parts) {
@@ -692,9 +709,14 @@ public class ClientHandler implements Runnable {
         return sb.toString();
     }
 
-    // Chat Commands
-    // START CHAT
-    private String handleStartChat(String[] parts) {
+
+
+
+
+    // ---------------- Chat Commands (NEW FLOW) ----------------
+
+    // request chat from a Branch (enqueue to target-branch queue; auto-assign if capacity exists)
+    private String handleRequestChat(String[] parts) {
         String err = validateCommand(null, parts, 2);
         if (err != null) return err;
 
@@ -704,87 +726,231 @@ public class ClientHandler implements Runnable {
         if (userBranch.equals(targetBranch))
             return "ERROR: Starting a chat with your own branch is not allowed. Please choose a different branch.";
 
+        // Optional note
+        String note = (parts.length > 2) ? String.join(" ", Arrays.copyOfRange(parts, 2, parts.length)) : "";
+
         try {
-            String response = chatService.startChat(userBranch, targetBranch, null);
-            if (response == null) return "[NOTIFY] Something went wrong. Invite saved if needed.";
-            if (response.contains("Chat started with")) {
-                String chatId = response.substring(response.indexOf("ChatID: ") + 8);
-                ChatService.ChatSession session = chatService.getChatById(chatId);
-                registerChatListener(session);
-                currentChatId = chatId;
-            }
+            chatService.requestChatFromBranch(
+                    userBranch,
+                    loggedInEmployee.getEmployeeId(), // explicit requester (employee)
+                    targetBranch,
+                    note,
+                    // Requester-specific notify callback (for this command only)
+                    msg -> {
+                        out.println("[NOTIFY] " + msg);
+                    }
+            );
+            return "[QUEUED] Your chat request to branch " + targetBranch + " was submitted.";
 
-            return response;
-
-        } catch (CustomExceptions.ChatBranchBusyException e) {
-            return "[NOTIFY] " + e.getMessage();
         } catch (Exception e) {
             e.printStackTrace();
-            return "ERROR: Oops! Something went wrong while starting the chat.";
+            return "ERROR: Oops! Something went wrong while starting the chat: " + e.getMessage();
         }
     }
 
-    // JOIN CHAT
-    private String handleJoinChat(String[] parts) {
+
+
+    // accept chat offer (assignee in target branch attaches + becomes busy)
+    private String handleAcceptChatOffer(String[] parts) {
+        String err = validateCommand(null, parts, 1); // no chatId needed anymore
+        if (err != null) return err;
+
+        if (currentSessionId == null) return "ERROR: Session not initialized. Please re-login.";
+
+        try {
+            Consumer<ChatService.ChatMessage> listener = m -> out.println(formatChatMessage(m));
+            
+            String chatId = chatService.acceptOfferByAssignee(currentSessionId, listener);
+
+            chatListeners.put(chatId, listener);
+            currentChatId = chatId;
+
+            ChatService.ChatSession chatSession = getActiveChat(chatId);
+
+            return "[WAITING] Chat session "+chatId+" created. Up to 60s for requester to join.";
+
+        } catch (CustomExceptions.ChatException e) {
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
+
+
+
+
+
+
+
+
+    // JOIN as REQUESTER (marks the requester UI as attached for the 60s rule)
+    private String handleJoinChatRequester(String[] parts) {
         String err = validateCommand(null, parts, 2);
         if (err != null) return err;
 
         String chatId = parts[1];
-        String userBranch = loggedInEmployee.getBranchId();
-        ChatService.ChatSession session;
+        if (currentSessionId == null) return "ERROR: Session not initialized. Please re-login.";
+
+        // Optional gate if you want to block concurrent chats for the same user
+        if (currentChatId != null && !currentChatId.equals(chatId)) {
+            switch (REQUESTER_JOIN_POLICY) {
+                case BLOCK -> { return "[ERROR] You’re already in chat " + currentChatId + ". END_CHAT or LEAVE_CHAT first."; }
+                case AUTO_LEAVE -> {
+                    // Just call it; it doesn't throw a checked exception
+                    chatService.leaveChatAsUser(currentChatId, loggedInEmployee.getBranchId(), currentSessionId);
+                    chatListeners.remove(currentChatId);
+                    out.println("[INFO] Left chat " + currentChatId + ". The other side has up to 2 minutes before auto-close.");
+                    currentChatId = null;
+                }
+                case AUTO_END_BOTH -> {
+                    chatService.endChat(currentChatId);      // also doesn't throw a checked exception
+                    chatListeners.remove(currentChatId);
+                    out.println("[INFO] Ended previous chat " + currentChatId + " for both sides.");
+                    currentChatId = null;
+                }
+            }
+        }
+
         try {
-            session = getActiveChat(chatId);
+            getActiveChat(chatId);
+
+            // one terminal listener for requester
+            Consumer<ChatService.ChatMessage> listener =
+                chatListeners.computeIfAbsent(chatId, _ -> m -> out.println(formatChatMessage(m)));
+
+            chatService.markRequesterAttached(
+                chatId,
+                loggedInEmployee.getEmployeeId(), // explicit requester (employee)
+                currentSessionId,                  // requesterSessionId
+                loggedInEmployee.getBranchId(),    // requesterBranch
+                listener                           // attach via service (don’t add twice yourself)
+            );
+            ChatService.ChatSession session = getActiveChat(chatId);
+            String reqName   = loggedInEmployee.getFullName();
+            String reqRole   = loggedInEmployee.getRole().name();
+            String reqBranch = loggedInEmployee.getBranchId();
+            String requesterDisp = reqName + " (" + reqRole + ", " + reqBranch + ")";
+
+
+            // try to resolve the other side currently attached (assignee)
+            String assigneeDisp = chatService.displayOf(session.getAssigneeSessionId());
+            session.addMessage(new ChatService.ChatMessage(
+                    "", "SYSTEM",
+                    "Requester joined: " + requesterDisp + ". Current asignee: " + assigneeDisp + "."
+            ));
+
+            currentChatId = chatId;
+            return "use SHOW_CHAT to see history.";
+
         } catch (CustomExceptions.ChatException e) {
             return "ERROR: " + e.getMessage();
         }
-
-        boolean isNewJoin = isBranchInChat(session, userBranch);
-        if (isNewJoin) {
-            broadcastSystemMessage(session, "Branch " + userBranch + " joined the chat.", userBranch);
-        }
-
-        registerChatListener(session);
-        currentChatId = chatId;
-
-        return "You joined chat " + chatId + ". Branches: " + session.getBranchesInvolved()
-                + ".\nTo see the chat history so far, type: SHOW_CHAT";
     }
 
-    // SEND MSG
+
+    // rejoining existing chat (if you know the chatId; e.g. re-join after disconnect)
+    private String handleJoinExistingChat(String[] parts) {
+        String err = validateCommand(null, parts, 2);
+        if (err != null) return err;
+
+        String chatId = parts[1];
+
+        // Optional: block multiple simultaneous chats for the same terminal
+        if (currentChatId != null && !currentChatId.equals(chatId)) {
+            return "[ERROR] You’re already in chat " + currentChatId + ". LEAVE_CHAT or END_CHAT first.";
+        }
+
+        try {
+            // one listener for this terminal
+            Consumer<ChatService.ChatMessage> listener =
+                    chatListeners.computeIfAbsent(chatId, _ -> m -> out.println(formatChatMessage(m)));
+
+            chatService.joinExistingChatAuthorized(
+                    chatId,
+                    loggedInEmployee.getEmployeeId(),
+                    loggedInEmployee.getRole(),
+                    loggedInEmployee.getBranchId(),
+                    currentSessionId,
+                    listener
+            );
+
+            ChatService.ChatSession session = getActiveChat(chatId);
+
+            String name   = loggedInEmployee.getFullName();
+            String role   = loggedInEmployee.getRole().name();
+            String branch = loggedInEmployee.getBranchId();
+            String disp   = name + " (" + role + ", " + branch + ")";
+
+            session.addMessage(new ChatService.ChatMessage(
+                    "", "SYSTEM",
+                    disp + " joined the chat."
+            ));            
+
+            currentChatId = chatId;
+            return "Joined existing chat " + chatId + " , use SHOW_CHAT to view chat history.";
+        } catch (CustomExceptions.ChatException e) {
+            return "ERROR: " + e.getMessage();
+        }
+    }
+
+
+    private String handleListJoinableChats() {
+        List<ChatService.ChatSession> joinables = chatService.listJoinableChatsForEmployee(
+                loggedInEmployee.getEmployeeId(),
+                loggedInEmployee.getRole(),
+                loggedInEmployee.getBranchId(),
+                currentSessionId
+        );
+
+        if (joinables.isEmpty()) return "[NOTIFY] No joinable active chats for you.";
+
+        StringBuilder sb = new StringBuilder("Joinable Chats:\n");
+        for (ChatService.ChatSession cs : joinables) {
+            // small, useful snapshot
+            sb.append("ChatID: ").append(cs.getChatId())
+            .append(" | Branches: ").append(cs.getBranchesInvolved())
+            .append(" | Participants: ").append(cs.getParticipants().size())
+            .append("\n");
+        }
+        sb.append("Use: JOIN <ChatID>");
+        return sb.toString();
+    }
+
+
+
+
+    // SEND MSG (works for either side once attached)
     private String handleSendMsg(String line) {
         String[] parts = line.split(" ", 2);
         String err = validateCommand(null, parts, 2);
         if (err != null) return "[ERROR] " + err;
 
-        if (currentChatId == null) {
-            return "[ERROR] No current chat selected. Use START_CHAT or JOIN_CHAT first.";
-        }
+        if (currentChatId == null)
+            return "[ERROR] No current chat selected. Use JOIN_CHAT_REQUESTER/JOIN_CHAT_EMPLOYEE first.";
 
-        ChatService.ChatSession session;
         try {
-            session = getActiveChat(currentChatId);
+            chatService.sendMessage(
+                currentChatId,
+                currentSessionId,
+                loggedInEmployee.getFullName(),
+                parts[1]
+            );
+            return "Message sent successfully";
         } catch (CustomExceptions.ChatException e) {
             return "[ERROR] " + e.getMessage();
         }
-
-        String userBranch = loggedInEmployee.getBranchId();
-        ChatService.ChatMessage msg = new ChatService.ChatMessage(
-                loggedInEmployee.getFullName(),
-                userBranch,
-                parts[1]
-        );
-
-        session.addMessage(msg);
-
-        return "Message sent successfully";
     }
 
-    // LEAVE CHAT
+
+
+
+
+    // LEAVE CHAT (unregister local listener, then tell service this specific session leaves)
     private String handleLeaveChat(String[] parts) {
         String chatId = (parts.length > 1) ? parts[1] : currentChatId;
         if (chatId == null) return "[ERROR] Please provide a chat ID.";
 
         String userBranch = loggedInEmployee.getBranchId();
+
         ChatService.ChatSession session;
         try {
             session = getActiveChat(chatId);
@@ -792,34 +958,44 @@ public class ClientHandler implements Runnable {
             return "[ERROR] " + e.getMessage();
         }
 
-        if (isBranchInChat(session, userBranch))
+        if (!session.getBranchesInvolved().contains(userBranch)) {
             return "[ERROR] Your branch is not part of chat " + chatId;
-
-        try {
-            chatService.leaveChat(chatId, userBranch);
-
-            if (chatId.equals(currentChatId)) {
-                currentChatId = null;
-            }
-
-            if (session.getBranchesInvolved().size() == 1) {
-                String remainingBranch = session.getBranchesInvolved().iterator().next();
-                if (remainingBranch.equals(userBranch)) {
-                    return "[NOTIFY] You are now alone in chat " + chatId + ". Type END_CHAT to close it.";
-                }
-            }
-
-            return "[NOTIFY] You left the chat " + chatId + ". Type 'Menu' to see available commands, or 'Exit' to exit.";
-
-        } catch (CustomExceptions.ChatException e) {
-            return "[ERROR] " + e.getMessage();
         }
+
+        // try {
+
+
+        String name   = loggedInEmployee.getFullName();
+        String role   = loggedInEmployee.getRole().name();
+        String branch = loggedInEmployee.getBranchId();
+        String disp   = name + " (" + role + ", " + branch + ")";
+
+        session.addMessage(new ChatService.ChatMessage(
+                "SYSTEM", "SYSTEM",
+                disp + " left the chat."
+        ));        
+        chatListeners.remove(chatId); // local stop (service removes its own listener internally)
+        chatService.leaveChatAsUser(chatId, userBranch, currentSessionId);
+
+        if (chatId.equals(currentChatId)) currentChatId = null;
+
+        return "[NOTIFY] You left chat " + chatId + ". Type 'Menu' to see available commands, or 'Exit' to exit.";
+        // } catch (CustomExceptions.ChatException e) {
+        //     return "[ERROR] " + e.getMessage();
+        // }
     }
 
-    // END CHAT
+
+
+
+
+    // END CHAT (optional save -> unregister listener -> end room for everyone)
     private String handleEndChat() {
+        if (currentChatId == null) return "[ERROR] No chat selected.";
+
+        boolean saved = false;
+
         try {
-            PrintWriter out = new PrintWriter(clientSocket.getOutputStream(), true);
             BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             out.println("Do you want to save the chat history? (yes/no)");
 
@@ -830,28 +1006,55 @@ public class ClientHandler implements Runnable {
 
                 if (response.equalsIgnoreCase("yes")) {
                     chatService.saveChatHistory(currentChatId);
-                    out.println("Chat history saved. Chat ended.");
+                    out.println("Chat history saved. Chat will end now.");
+                    saved = true;
                     break;
                 } else if (response.equalsIgnoreCase("no")) {
-                    out.println("Chat ended without saving.");
+                    out.println("Chat will end without saving.");
                     break;
                 } else {
                     out.println("Please answer yes or no.");
                 }
             }
+            try{
+                ChatService.ChatSession session = getActiveChat(currentChatId);
+                String endedBy = loggedInEmployee.getFullName() + " (" +
+                        loggedInEmployee.getRole().name() + ", " +
+                        loggedInEmployee.getBranchId() + ")";
 
-            chatService.endChat(currentChatId);
-
-        } catch (IOException e) {
+                session.addMessage(new ChatService.ChatMessage(
+                        "", "SYSTEM",
+                        "Chat ended by " + endedBy + "\nType 'Menu' to see available commands, or 'Exit' to exit."
+                ));
+                chatListeners.remove(currentChatId);
+                chatService.endChat(currentChatId);
+            } 
+            catch (CustomExceptions.ChatException e) {
+                    return "[ERROR] " + e.getMessage();
+            } 
+        }
+        catch (IOException e) {
             e.printStackTrace();
             return "Error handling chat end: " + e.getMessage();
         }
-        logAction(String.format("Chat history saved for chat ID=%s by employee %s (Branch=%s)",
-                currentChatId, loggedInEmployee.getFullName(), loggedInEmployee.getBranchId()));
-        return "Type 'Menu' to see available commands, or 'Exit' to exit.";
-    }
 
-    // SHOW CHAT
+        logAction(String.format(
+            "Chat %s ended by %s (Branch=%s). saved=%s",
+            currentChatId,
+            loggedInEmployee.getFullName(),
+            loggedInEmployee.getBranchId(),
+            saved
+        ));
+
+        currentChatId = null;
+        return "";
+    }
+    
+
+
+
+
+
     private String handleShowChat() {
         if (currentChatId == null) return "ERROR: No chat selected.";
 
@@ -871,19 +1074,17 @@ public class ClientHandler implements Runnable {
         return sb.toString();
     }
 
-    // CHECK INVITES
-    private String handleCheckInvites() {
-        String branchId = loggedInEmployee.getBranchId();
-        Queue<String> invites = chatService.getPendingInvites(branchId);
-        if (invites.isEmpty()) return "No pending invites.";
+    // private String handleCheckInvites() {
+    //     String branchId = loggedInEmployee.getBranchId();
+    //     Queue<String> invites = chatService.getPendingInvites(branchId);
+    //     if (invites.isEmpty()) return "No pending invites.";
 
-        StringBuilder sb = new StringBuilder("Pending chat invites from: ");
-        while (!invites.isEmpty()) sb.append(invites.poll()).append(" ");
-        chatService.clearPendingInvites(branchId);
-        return sb.toString().trim();
-    }
+    //     StringBuilder sb = new StringBuilder("Pending chat invites from: ");
+    //     while (!invites.isEmpty()) sb.append(invites.poll()).append(" ");
+    //     chatService.clearPendingInvites(branchId);
+    //     return sb.toString().trim();
+    // }
 
-    // LIST CHATS
     private String listChatsCommand() {
         if (loggedInEmployee.getRole() != Role.ADMIN && loggedInEmployee.getRole() != Role.SHIFT_MANAGER)
             return "ERROR: Only ADMIN or SHIFT_MANAGER can list all chats.";
@@ -901,6 +1102,8 @@ public class ClientHandler implements Runnable {
         }
         return sb.toString();
     }
+
+
 
 }
 
