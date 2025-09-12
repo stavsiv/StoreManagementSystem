@@ -18,20 +18,21 @@ public class FileUtils {
      * @param serializer Function that converts object of type T to JSON string
      * @param <T> Type of objects
      */
+
     public static <T> void saveToFile(String filePath, List<T> items, Function<T, String> serializer) {
-        StringBuilder sb = new StringBuilder("[\n");
-        for (int i = 0; i < items.size(); i++) {
-            sb.append(serializer.apply(items.get(i)));
-            if (i < items.size() - 1) sb.append(",");
-            sb.append("\n");
+        StringBuilder fileSB = new StringBuilder("[\n");
+        for (int index = 0; index < items.size(); index++) {
+            fileSB.append(serializer.apply(items.get(index)));
+            if (index < items.size() - 1) fileSB.append(",");
+            fileSB.append("\n");
         }
-        sb.append("]\n");
+        fileSB.append("]\n");
 
         try (FileWriter fw = new FileWriter(filePath)) {
-            fw.write(sb.toString());
+            fw.write(fileSB.toString());
             System.out.println("Saved " + items.size() + " items to file: " + filePath);
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error writing to file: " + filePath + " -> " + e.getMessage());
         }
     }
 
@@ -42,13 +43,13 @@ public class FileUtils {
      * @return List of JSON strings
      */
     public static List<String> readJsonObjectsFromFile(String filePath) {
-        File f = new File(filePath);
-        if (!f.exists()) {
+        File file = new File(filePath);
+        if (!file.exists()) {
             System.out.println("File not found: " + filePath + ". Skipping load.");
             return Collections.emptyList();
         }
 
-        String jsonContent = readWholeFile(f);
+        String jsonContent = readWholeFile(file);
         if (jsonContent == null || jsonContent.trim().isEmpty()) {
             System.out.println("File is empty: " + filePath + ". Skipping load.");
             return Collections.emptyList();
@@ -61,10 +62,10 @@ public class FileUtils {
         List<String> result = new ArrayList<>();
         int braceCount = 0;
         StringBuilder current = new StringBuilder();
-        for (char c : jsonContent.toCharArray()) {
-            if (c == '{') braceCount++;
-            if (c == '}') braceCount--;
-            current.append(c);
+        for (char charIndex : jsonContent.toCharArray()) {
+            if (charIndex == '{') braceCount++;
+            if (charIndex == '}') braceCount--;
+            current.append(charIndex);
             if (braceCount == 0 && !current.isEmpty()) {
                 String obj = current.toString().trim();
                 if (!obj.isEmpty() && !obj.equals("[") && !obj.equals("]")) {
@@ -84,12 +85,15 @@ public class FileUtils {
      */
     public static String readWholeFile(File file) {
         try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-            StringBuilder sb = new StringBuilder();
+            StringBuilder readSB = new StringBuilder();
             String line;
-            while ((line = br.readLine()) != null) sb.append(line).append("\n");
-            return sb.toString();
+            while ((line = br.readLine()) != null) readSB.append(line).append("\n");
+            return readSB.toString();
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found: " + file.getAbsolutePath());
+            return null;
         } catch (IOException e) {
-            e.printStackTrace();
+            System.out.println("Error reading file: " + file.getAbsolutePath() + " -> " + e.getMessage());
             return null;
         }
     }
@@ -147,7 +151,6 @@ public class FileUtils {
         catch (Exception ex) { return null; }
 
         Employee e = new Employee(fullName, id, phone, account, empNum, branch, role, username, password);
-
         e.setUserName(username);
         e.setPassword(password);
         return e;

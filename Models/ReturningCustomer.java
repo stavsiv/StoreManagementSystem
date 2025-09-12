@@ -4,7 +4,7 @@ import Exceptions.CustomExceptions;
 
 public class ReturningCustomer extends Customer {
 
-    private static final double DISCOUNT_RATE = 0.10; //10% discount
+    private static final double DISCOUNT_RATE = 0.10; // 10% discount
 
     // Constructor
     public ReturningCustomer(String fullName, String customerId, String phoneNumber) throws CustomExceptions.CustomerException {

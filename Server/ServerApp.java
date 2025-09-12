@@ -35,7 +35,6 @@ public class ServerApp {
     public ServerApp(int port) throws CustomExceptions.BranchException, CustomExceptions.EmployeeException, CustomExceptions.CustomerException, CustomExceptions.ProductException {
         this.port = port;
 
-
         // Load branches
         for (String branchJson : FileUtils.readJsonObjectsFromFile(BRANCHES_FILE)) {
             Branch currBranch = FileUtils.parseBranchFromJson(branchJson);

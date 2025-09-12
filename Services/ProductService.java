@@ -34,16 +34,16 @@ public class ProductService {
     }
 
     public String formatProductList(List<Product> products) {
-        StringBuilder sb = new StringBuilder();
-       sb.append(String.format("%-10s | %-20s | %-15s | %-10s | %-10s | %-10s\n",
+        StringBuilder productSB = new StringBuilder();
+       productSB.append(String.format("%-10s | %-20s | %-15s | %-10s | %-10s | %-10s\n",
                 "Product Id", "Name", "Category", "Price", "Stock", "Branch"));
-        sb.append("----------------------------------------------------------------------------------------\n");
+        productSB.append("----------------------------------------------------------------------------------------\n");
         for (Product p : products) {
-            sb.append(String.format("%-10s | %-20s | %-15s | %-10.2f | %-10d | %-10s\n",
+            productSB.append(String.format("%-10s | %-20s | %-15s | %-10.2f | %-10d | %-10s\n",
                     p.getProductId(), p.getProductName(), p.getCategory(),
                     p.getPrice(), p.getQuantityInStock(), p.getBranch()));
         }
-       return sb.toString();
+       return productSB.toString();
    }
 
     public List<Product> getProductsByBranch(String branchId) {

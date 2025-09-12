@@ -12,5 +12,18 @@
     "Juliet Snow (B002): Okay, update the system so we reserve these for shipment tomorrow.",
     "Osher Cohen (B005): Will do."
   ]
+},
+{
+  "chatId": "CHAT-1000",
+  "date": "2025-09-06",
+  "time": "23:50",
+  "messages": [
+    "SYSTEM (SYSTEM): Chat started between B003 and B001",
+    "Stav Sivilya (B001): Good morning, did the night shift finish the inventory check?",
+    "Lidor Stamker (B003): Yes, all counts are completed and logged in the system.",
+    "Stav Sivilya (B001): Great. Any issues we should know about?",
+    "Lidor Stamker (B003): Just a minor delay with the new shipment, but everything else is fine.",
+    "Stav Sivilya (B001): Good, thanks!!"
+  ]
 }
 ]

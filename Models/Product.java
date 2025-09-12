@@ -10,9 +10,8 @@ public class Product {
     private int quantityInStock;
     private String branchId;
 
-    // Empty Constructor
-    public Product(String productId, String name, String category,
-                   double price, int quantityInStock, String branch)
+    // Constructor
+    public Product(String productId, String name, String category, double price, int quantityInStock, String branch)
             throws CustomExceptions.ProductException {
         setProductId(productId);
         setProductName(name);

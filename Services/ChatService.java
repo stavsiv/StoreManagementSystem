@@ -2,8 +2,6 @@ package Services;
 
 import Exceptions.CustomExceptions;
 import Server.Utils.FileUtils;
-// import Services.ChatService.ChatMessage;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -18,50 +16,36 @@ import Models.Role;
 /**
  * Chat flow: queue → offer → assignee joins → requester joins → active → end.
  * Timers: offer 60s, requester 60s, solo 120s.
- *
  * Commands enter via Server/ClientHandler calling the public API below.
  */
 public class ChatService {
 
     // -------------------- Constants & debug --------------------
-    private static void dbg(String msg) { System.out.println("[CHAT-DBG] " + msg); }
+    //private static void dbg(String msg) { System.out.println("[CHAT-DBG] " + msg); }
     private final AtomicInteger chatCounter = new AtomicInteger(1000);
     private static final long OFFER_TIMEOUT_MS = 60_000L;
     private static final long REQUESTER_TIMEOUT_MS = 60_000L;
     private static final long SOLO_GRACE_MS = 120_000L;
-
-
-
-
-
-
-
-
-
-    // enum Role { SELLER, SHIFT_MANAGER , ADMIN , CASHIER, CUSTOMER } 
-    // enum OfferPhase { WAIT_TARGET, WAIT_REQUESTER }
+    private  static final String CHAT_FILE= "Data/chat_history.json";
 
     public static class ChatSession {
         private final String chatId;
         private final String branchA;                      // fixed at creation
         private final String branchB;                      // fixed at creation
-
-
-        private final String requesterEmployeeId;     // who asked originally
-        private final String assigneeEmployeeId;      // who accepted
-
-
-        private volatile String requesterSessionId;   // null until requester joins
+        // null until requester joins
         private volatile String assigneeSessionId;    // set at accept time
 
         /**
          * Key = sessionId (String)
          */
-        private final Set<String> participants = ConcurrentHashMap.newKeySet(); 
+
+        private final Set<String> participants = ConcurrentHashMap.newKeySet();
+
         /**
          * Key = sessionId (String)
          * Value = branchId (String)
          */
+
         private final Map<String, String> sessionBranch = new ConcurrentHashMap<>();
         private final Map<String, CopyOnWriteArrayList<ListenerReg>> listenersByBranch = new ConcurrentHashMap<>();
         private final List<ChatMessage> messages = Collections.synchronizedList(new ArrayList<>());
@@ -71,18 +55,13 @@ public class ChatService {
         public ChatSession(
             String chatId, 
             String branchA, 
-            String branchB,
-            String requesterEmployeeId,
-            String assigneeEmployeeId) {
+            String branchB) {
             this.chatId = chatId;
             this.branchA = branchA;
             this.branchB = branchB;
-            this.requesterEmployeeId = requesterEmployeeId;
-            this.assigneeEmployeeId = assigneeEmployeeId;
+            // who asked originally
+            // who accepted
         }
-
-
-
 
         public synchronized void addListener(String branchId, String sessionId, Consumer<ChatMessage> listener) {
             participants.add(sessionId);
@@ -101,11 +80,11 @@ public class ChatService {
             sessionBranch.remove(sessionId);
         }
 
-        public void broadcastToOthers(ChatMessage msg, String excludingBranch) {
-            for (String branch : listenersByBranch.keySet()) {
-                if (!branch.equals(excludingBranch)) notifyBranch(branch, msg);
-            }
-        }
+//        public void broadcastToOthers(ChatMessage msg, String excludingBranch) {
+//            for (String branch : listenersByBranch.keySet()) {
+//                if (!branch.equals(excludingBranch)) notifyBranch(branch, msg);
+//            }
+//        }
 
         public void addMessage(ChatMessage msg) {
             messages.add(msg);
@@ -114,10 +93,10 @@ public class ChatService {
             }
         }
 
-        public void notifyBranch(String branchId, ChatMessage msg) {
-            var list = listenersByBranch.get(branchId);
-            if (list != null) list.forEach(reg -> reg.callback.accept(msg));
-        }
+//        public void notifyBranch(String branchId, ChatMessage msg) {
+//            var list = listenersByBranch.get(branchId);
+//            if (list != null) list.forEach(reg -> reg.callback.accept(msg));
+//        }
 
         public String getBranchOfSession(String sessionId) { return sessionBranch.get(sessionId); }
         public Set<String> getParticipants() { return participants; }
@@ -126,11 +105,12 @@ public class ChatService {
         public String getChatId() { return chatId; }
         public boolean isActive() { return active; }
         public void setActive(boolean active) { this.active = active; }
-        public String getRequesterEmployeeId() { return requesterEmployeeId; }
-        public String getAssigneeEmployeeId()  { return assigneeEmployeeId; }
-        public String getRequesterSessionId()  { return requesterSessionId; }
+       // public String getRequesterEmployeeId() { return requesterEmployeeId; }
+      //  public String getAssigneeEmployeeId()  { return assigneeEmployeeId; }
+       // public String getRequesterSessionId()  { return requesterSessionId; }
         public String getAssigneeSessionId()   { return assigneeSessionId; }
-        public void setRequesterSessionId(String sessionId) { this.requesterSessionId = sessionId; }
+        public void setRequesterSessionId() {
+        }
         public void setAssigneeSessionId(String sessionId)  { this.assigneeSessionId  = sessionId; }
 
         static final class ListenerReg {
@@ -163,16 +143,10 @@ public class ChatService {
         final String requestId = UUID.randomUUID().toString();
         final String sourceEmployeeId, sourceBranch, targetBranch, note;
         final Consumer<String> notifyCallback;
-        LocalDateTime createdAt = LocalDateTime.now();
+        //LocalDateTime createdAt = LocalDateTime.now();
         int attempts = 0;         // drop after 2 misses
 
-        public ChatRequest(
-            String sourceBranch, 
-            String sourceEmployeeId, 
-            String targetBranch, 
-            String note, 
-            Consumer<String> notifyCallback) 
-            {
+        public ChatRequest(String sourceBranch, String sourceEmployeeId, String targetBranch, String note, Consumer<String> notifyCallback) {
             this.sourceBranch = sourceBranch;
             this.sourceEmployeeId = sourceEmployeeId;
             this.targetBranch = targetBranch;
@@ -199,16 +173,9 @@ public class ChatService {
 
     }
 
-
-
-
-
-
     // -------------------- Data Structures --------------------
-    
     /**
      * Active chat sessions.
-     *
      * Key = chatId (String, format "C####")
      * Value = ChatSession
      * This map only holds chats that are still active; ended chats are always removed.
@@ -217,7 +184,6 @@ public class ChatService {
 
     /**
      * One FIFO queue of waiting chat requests for each target branch.
-     *
      * Key = branchId (String, e.g. "B001")
      * Value = Queue of ChatRequest objects destined for that branch
      * Only requests that have not yet been assigned are kept here.
@@ -226,7 +192,6 @@ public class ChatService {
 
     /**
      * Availability pool of idle employees, per branch, for auto-assignment.
-     *
      * Key = branchId (String)
      * Value = Deque of sessionIds (String)
      * The deque is used to pick the next available employee fairly (FIFO/LIFO depending on policy).
@@ -235,7 +200,6 @@ public class ChatService {
     
     /**
      * Online presence, grouped by branch.
-     *
      * Key = branchId (String)
      * Value = Set of sessionIds (String) currently connected under that branch
      * Updated on login/logout or disconnect.
@@ -244,7 +208,6 @@ public class ChatService {
 
     /**
      * Tracks active chats per employee.
-     *
      * Key = sessionId or employeeId (String)
      * Value = Set of chatIds (String) that this employee is currently participating in
      * Used to enforce capacity (e.g., "max 1 chat per employee").
@@ -253,7 +216,6 @@ public class ChatService {
      
     /**
      * In-flight offers while waiting up to 60 seconds for the assignee to accept.
-     *
      * Key = requestId (String)
      * Value = ChatOffer object tracking the pending assignment
      * Cleared once accepted, declined, or timed out.
@@ -270,7 +232,6 @@ public class ChatService {
     
     /**
      * Direct notification channel per session.
-     *
      * Key = sessionId (String)
      * Value = Consumer<String> callback to push messages directly to that session
      * Used for targeted events (offers, system messages).
@@ -281,7 +242,6 @@ public class ChatService {
 
     /**
      * Global scheduler for all timeouts and delayed tasks.
-     *
      * Single-threaded ScheduledExecutorService.
      * Used for offer timeouts (60s), requester join timeout (60s),
      * and solo-chat auto-close (120s).
@@ -301,9 +261,6 @@ public class ChatService {
     // Track which request created a chat, so we can release the dedupe when the chat ends
     private final Map<String, ChatRequest> requestByChat = new ConcurrentHashMap<>();
 
-
-
-
     // add alongside other maps
     /** 
      * sessionId -> employeeId
@@ -312,18 +269,10 @@ public class ChatService {
     /**
      * chatId -> assigneeEmployeeId
      */
-    private final Map<String, String> assigneeEmployeeByChat = new ConcurrentHashMap<>(); 
-
+    private final Map<String, String> assigneeEmployeeByChat = new ConcurrentHashMap<>();
     private final Map<String, String> sessionDisplay = new ConcurrentHashMap<>();
 
-
-
-
-
-
-    
     // --------------------- Internal helpers --------------------
-
     // Matching & offer management
     private synchronized void tryMatch(String targetBranch) {
         Queue<ChatRequest> q = waitingQueue.get(targetBranch);
@@ -333,12 +282,12 @@ public class ChatService {
         if (idle == null) return;
 
         while (!q.isEmpty() && !idle.isEmpty()) {
-            ChatRequest chatRequest = q.peek();            // don’t remove until we secure an offer
+            ChatRequest chatRequest = q.peek();     // don’t remove until we secure an offer
             String assignee = idle.pollFirst();    // take one idle
 
             if (assignee == null) break;
             offerToAssignee(chatRequest, assignee);
-            q.remove(chatRequest);                         // now take it out of queue (it’s in offer)
+            q.remove(chatRequest);                  // now take it out of queue (it’s in offer)
         }
     }
 
@@ -358,7 +307,7 @@ public class ChatService {
         // notify assignee
         Consumer<String> cb = sessionNotify.get(assigneeSessionId);
         if (cb != null) {
-            cb.accept("[OFFER] Incoming chat from " + chatRequest.sourceBranch + " Use ACCEPT to accept the chat" +
+            cb.accept("[OFFER] Incoming chat from " + chatRequest.sourceBranch + ". Use ACCEPT to accept the chat." +
                     (chatRequest.note == null || chatRequest.note.isBlank() ? "" : (" – " + chatRequest.note)));
         }
 
@@ -374,7 +323,6 @@ public class ChatService {
         // clear assignee mapping
         offerIdByAssignee.remove(offer.assigneeSessionId, requestId);
 
-        
         setIdle(offer.assigneeSessionId, true);
 
         // DO NOT increment req.attempts here (assignee’s fault, not requester’s)
@@ -383,15 +331,12 @@ public class ChatService {
         tryMatch(offer.chatRequest.targetBranch);
     }
 
-
     // Requester attach handling
     private void onRequesterAttachTimeout(ChatRequest chatRequest, ChatSession chatSession, String assigneeSessionId) {
         try {
             // free assignee
             Set<String> set = employeeActiveChats.get(assigneeSessionId);
             if (set != null) set.remove(chatSession.getChatId());
-            
-            
 
             // add a SYSTEM message before ending the chat
             String branch = chatSession.getBranchOfSession(assigneeSessionId);
@@ -399,7 +344,7 @@ public class ChatService {
                 Set<String> branches = chatSession.getBranchesInvolved();
                 branch = branches.stream().findFirst().orElse("");
             }
-            chatSession.addMessage(new ChatMessage("SYSTEM", branch, "Requester didnt answer, cancelling the chat"));
+            chatSession.addMessage(new ChatMessage("SYSTEM", branch, "Requester didn't answer, cancelling the chat"));
 
             setIdle(assigneeSessionId, true);
             // end session
@@ -414,12 +359,7 @@ public class ChatService {
                 tryMatch(chatRequest.targetBranch);
             } else {
                 if (chatRequest.notifyCallback != null)
-                    chatRequest.notifyCallback.accept(
-                        "[INFO] Chat request for branch" + 
-                        chatRequest.targetBranch + 
-                        " was cancelled after" + 
-                        chatRequest.attempts + 
-                        " no-shows.");
+                    chatRequest.notifyCallback.accept("[INFO] Chat request for branch" + chatRequest.targetBranch + " was cancelled after" + chatRequest.attempts + " no-shows.");
                 releaseActiveRequest(chatRequest); // frees dedupe key
             }
         } finally {
@@ -427,21 +367,17 @@ public class ChatService {
         }
     }
 
-
     // Cleanup & utilities
     private void endSessionOnly(ChatSession chatSession) {
         if (chatSession == null || !chatSession.isActive()) return;
-
         notifyParticipants(chatSession, "[EVENT] CHAT_ENDED " + chatSession.getChatId());
-
-
         chatSession.setActive(false);
         cancelTimer(requesterAttachTimers.remove(chatSession.getChatId())); // add this line
         cancelTimer(chatSession.soloTimer);
         chatSession.soloTimer = null;
 
-        ChatRequest r = requestByChat.remove(chatSession.getChatId());
-        if (r != null) releaseActiveRequest(r);
+        ChatRequest request = requestByChat.remove(chatSession.getChatId());
+        if (request != null) releaseActiveRequest(request);
 
         chatMap.remove(chatSession.getChatId());
     }
@@ -450,21 +386,19 @@ public class ChatService {
 
     private String newChatId() {
         // e.g., "C" + zero-padded counter; or UUID substring
-        return "C" + chatCounter.getAndIncrement();
+        return "CHAT-" + chatCounter.getAndIncrement();
     }
 
     private boolean hasPendingOrOffered(String emp, String src, String tgt) {
         // queue
-        Queue<ChatRequest> q = waitingQueue.getOrDefault(tgt, new ConcurrentLinkedQueue<>());
-        boolean inQueue = q.stream().anyMatch(r ->
-            r.sourceEmployeeId.equals(emp) && r.sourceBranch.equals(src));
+        Queue<ChatRequest> queue = waitingQueue.getOrDefault(tgt, new ConcurrentLinkedQueue<>());
+        boolean inQueue = queue.stream().anyMatch(request ->
+            request.sourceEmployeeId.equals(emp) && request.sourceBranch.equals(src));
         if (inQueue) return true;
 
         // offers
         return pendingOffers.values().stream().anyMatch(of ->
-            of.chatRequest.sourceEmployeeId.equals(emp) &&
-            of.chatRequest.sourceBranch.equals(src) &&
-            of.chatRequest.targetBranch.equals(tgt));
+            of.chatRequest.sourceEmployeeId.equals(emp) && of.chatRequest.sourceBranch.equals(src) && of.chatRequest.targetBranch.equals(tgt));
     }
 
     private void releaseActiveRequest(ChatRequest chatRequest) {
@@ -482,12 +416,9 @@ public class ChatService {
         }
     }
 
-
     // -------------------- Core API Methods --------------------
-    
     public Collection<ChatSession> listAllChats() { return chatMap.values(); }
     public ChatSession getChatById(String chatId) { return chatMap.get(chatId); }
-
     public String displayOf(String sessionId) { return sessionDisplay.getOrDefault(sessionId, sessionId); }
 
     // 0) Presence & readiness
@@ -535,27 +466,20 @@ public class ChatService {
             .filter(e -> e.getValue().contains(sessionId))
             .map(Map.Entry::getKey).findFirst().orElse(null);
         if (branchId == null) return;
-
-        Deque<String> dq = branchIdleSessions.computeIfAbsent(branchId, _ -> new ConcurrentLinkedDeque<>());
-
+        Deque<String> branchIdQueue = branchIdleSessions.computeIfAbsent(branchId, _ -> new ConcurrentLinkedDeque<>());
         boolean isBusy = !employeeActiveChats.getOrDefault(sessionId, Collections.emptySet()).isEmpty();
-
         if (idle && !isBusy) {
             // only idle if not in any chat
-            if (!dq.contains(sessionId)) dq.addLast(sessionId);
+            if (!branchIdQueue.contains(sessionId)) branchIdQueue.addLast(sessionId);
             tryMatch(branchId);
         } else {
             // either explicitly not idle, or busy → must not be in idle pool
-            dq.remove(sessionId);
+            branchIdQueue.remove(sessionId);
         }
     }
 
-
-
     // 1) Request life-cycle
-    public String requestChatFromBranch(String sourceBranch, String sourceEmployeeId,
-                                        String targetBranch, String note,
-                                        Consumer<String> requesterNotify) {
+    public void requestChatFromBranch(String sourceBranch, String sourceEmployeeId, String targetBranch, String note, Consumer<String> requesterNotify) {
         final String key = makeRequestKey(sourceEmployeeId, sourceBranch, targetBranch);
 
         // dedupe (one active attempt per key)
@@ -563,7 +487,7 @@ public class ChatService {
         if (existing != null) {
             if (requesterNotify != null)
                 requesterNotify.accept("[ERROR] You already have a pending/active request to " + targetBranch + ".");
-            return null;
+            return;
         }
 
         try {
@@ -572,7 +496,7 @@ public class ChatService {
                 if (requesterNotify != null)
                     requesterNotify.accept("[ERROR] You already have a pending/active request to " + targetBranch + ".");
                 activeRequests.remove(key);
-                return null;
+                return;
             }
 
             ChatRequest chatRequest = new ChatRequest(sourceBranch, sourceEmployeeId, targetBranch, note, requesterNotify);
@@ -580,7 +504,6 @@ public class ChatService {
 
             waitingQueue.computeIfAbsent(targetBranch, _ -> new ConcurrentLinkedQueue<>()).add(chatRequest);
             tryMatch(targetBranch);
-            return chatRequest.requestId;
 
         } catch (RuntimeException e) {
             activeRequests.remove(key);
@@ -601,7 +524,7 @@ public class ChatService {
             throw new CustomExceptions.ChatException("You are not the assigned employee for this offer.");
 
         // capacity: one chat per employee
-        if (employeeActiveChats.getOrDefault(sessionId, Collections.emptySet()).size() > 0)
+        if (!employeeActiveChats.getOrDefault(sessionId, Collections.emptySet()).isEmpty())
             throw new CustomExceptions.ChatException("You are already in a chat.");
 
         // stop offer timeout
@@ -614,17 +537,13 @@ public class ChatService {
         // create chat & attach assignee
         String chatId = newChatId();
         String assigneeEmpId = sessionToEmployee.get(sessionId);           // resolve employee
-        String requesterEmpId = offer.chatRequest.sourceEmployeeId;
         ChatSession chatSession = new ChatSession(
             chatId, 
             offer.chatRequest.sourceBranch, 
-            offer.chatRequest.targetBranch,
-            requesterEmpId,
-            assigneeEmpId
-        );   
+            offer.chatRequest.targetBranch
+        );
         chatMap.put(chatId, chatSession);
         requestByChat.put(chatId, offer.chatRequest); // track which request created this chat
-
 
         // remember assignee’s employeeId for later re-joins
         if (assigneeEmpId != null) assigneeEmployeeByChat.put(chatId, assigneeEmpId); 
@@ -657,7 +576,6 @@ public class ChatService {
         return chatId;
     }
 
-
     public List<ChatSession> listJoinableChatsForEmployee(
             String employeeId, Role role, String branchId, String currentSessionId) {
 
@@ -685,10 +603,6 @@ public class ChatService {
         return result;
     }
 
-
-
-
-
     private boolean isInActiveChatOtherThan(String sessionId, String exceptChatId) {
         Set<String> chats = employeeActiveChats.getOrDefault(sessionId, Collections.emptySet());
         if (chats.isEmpty()) return false;
@@ -701,11 +615,7 @@ public class ChatService {
         return false;
     }
 
-    public void markRequesterAttached(String chatId,
-                                    String requesterEmployeeId,
-                                    String requesterSessionId,
-                                    String requesterBranch,
-                                    Consumer<ChatMessage> requesterListener)
+    public void markRequesterAttached(String chatId, String requesterEmployeeId, String requesterSessionId, String requesterBranch, Consumer<ChatMessage> requesterListener)
             throws CustomExceptions.ChatException {
 
         ChatSession chatSession = chatMap.get(chatId);
@@ -724,15 +634,13 @@ public class ChatService {
             );
         }
 
-
         // Must join from one of the chat’s branches (requester is branchA)
         if (!Objects.equals(requesterBranch, chatSession.branchA) && !Objects.equals(requesterBranch, chatSession.branchB))
             throw new CustomExceptions.ChatException("Branch not allowed to join this chat.");
 
-
         // attach + mark busy + ensure not idle
         chatSession.addListener(requesterBranch, requesterSessionId, requesterListener);
-        chatSession.setRequesterSessionId(requesterSessionId);
+        chatSession.setRequesterSessionId();
 
         employeeActiveChats.computeIfAbsent(requesterSessionId, _ -> ConcurrentHashMap.newKeySet()).add(chatId);
         setIdle(requesterSessionId, false);
@@ -743,17 +651,10 @@ public class ChatService {
         cancelTimer(requesterAttachTimers.remove(chatId));
         cancelTimer(chatSession.soloTimer);
         chatSession.soloTimer = null;
-
         // chatSession.addMessage(new ChatMessage("SYSTEM", requesterBranch, "Requester joined. Chat is active."));
     }
 
-    public void joinExistingChatAuthorized(
-            String chatId,
-            String employeeId,
-            Role role,                     
-            String branchId,
-            String sessionId,
-            Consumer<ChatMessage> listener
+    public void joinExistingChatAuthorized(String chatId, String employeeId, Role role, String branchId, String sessionId, Consumer<ChatMessage> listener
     ) throws CustomExceptions.ChatException {
 
         ChatSession chatSession = chatMap.get(chatId);
@@ -764,8 +665,8 @@ public class ChatService {
                 role == Role.SHIFT_MANAGER && (Objects.equals(branchId, chatSession.branchA) || Objects.equals(branchId, chatSession.branchB));
 
         // Allow if original requester
-        ChatRequest req = requestByChat.get(chatId);
-        boolean isOriginalRequester = (req != null && Objects.equals(req.sourceEmployeeId, employeeId));
+        ChatRequest request = requestByChat.get(chatId);
+        boolean isOriginalRequester = (request != null && Objects.equals(request.sourceEmployeeId, employeeId));
 
         // Allow if original assignee (by employeeId)
         String assigneeEmp = assigneeEmployeeByChat.get(chatId);
@@ -788,9 +689,6 @@ public class ChatService {
         //         (role == Role.SHIFT_MANAGER ? "Shift manager" : "Participant") + " joined. use SHOW_CHAT to see history."));
     }
 
-
-
-
     // 2) Messaging (inside an active session)
     public void sendMessage(String chatId, String fromSessionId, String senderName, String text)
             throws CustomExceptions.ChatException {
@@ -803,12 +701,11 @@ public class ChatService {
         ChatMessage msg = new ChatMessage(senderName, branchId, text);
         chatSession.addMessage(msg);
     }
-
     
     // 3) Leaving & ending
-    public String leaveChatAsUser(String chatId, String branchId, String sessionId) {
+    public void leaveChatAsUser(String chatId, String branchId, String sessionId) {
         ChatSession chatSession = chatMap.get(chatId);
-        if (chatSession == null) return "[INFO] Chat already ended.";
+        if (chatSession == null) return;
 
         chatSession.removeListener(branchId, sessionId);
         Set<String> set = employeeActiveChats.get(sessionId);
@@ -817,30 +714,27 @@ public class ChatService {
         // if zero participants -> end
         if (chatSession.getParticipants().isEmpty()) {
             endSessionOnly(chatSession);
-            return "[INFO] You left. Chat ended.";
+            return;
         }
 
         // if one side remains -> schedule solo auto-close (2 min)
         if (chatSession.getBranchesInvolved().size() == 1) {
             chatSession.addMessage(new ChatMessage("SYSTEM", branchId, "Peer left. Chat will auto-close in 2 minutes unless someone rejoins."));
             cancelTimer(chatSession.soloTimer);
-            ScheduledFuture<?> f = scheduler.schedule(() -> endSessionOnly(chatSession),
+            chatSession.soloTimer = scheduler.schedule(() -> endSessionOnly(chatSession),
                                           SOLO_GRACE_MS, TimeUnit.MILLISECONDS);
-            chatSession.soloTimer = f;
             // soloCloseTasks.put(chatId, f);
         }
 
         // return employee to idle (if still connected)
         setIdle(sessionId, true);
-        return "[INFO] You left the chat.";
     }
 
-    public String endChat(String chatId) {
+    public void endChat(String chatId) {
         ChatSession chatSession = chatMap.get(chatId);
-        if (chatSession == null) return "[INFO] Chat already ended.";
+        if (chatSession == null) return;
 
         notifyParticipants(chatSession, "[EVENT] CHAT_ENDED " + chatId);
-
         endSessionOnly(chatSession);
 
         // free all participants to idle
@@ -849,10 +743,8 @@ public class ChatService {
             if (set != null) set.remove(chatId);
             setIdle(sessionId, true);
         }
-        return "[INFO] Chat ended.";
     }
 
-    
     // 4) (Optional) persistence
     public void saveChatHistory(String chatId) {
         ChatSession chatSession = getChatById(chatId);
@@ -867,27 +759,27 @@ public class ChatService {
                 .toList();
         chatJson.put("messages", messages);
 
-        List<String> allChatsJson = FileUtils.readJsonObjectsFromFile("Data/chat_history.json");
+        List<String> allChatsJson = FileUtils.readJsonObjectsFromFile(CHAT_FILE);
         List<String> updatedChats = new ArrayList<>();
         for (String chat : allChatsJson) {
             if (chat != null && !chat.isBlank()) updatedChats.add(chat);
         }
 
-        StringBuilder sb = new StringBuilder("{\n");
-        sb.append("  \"chatId\": \"").append(chatJson.get("chatId")).append("\",\n");
-        sb.append("  \"date\": \"").append(chatJson.get("date")).append("\",\n");
-        sb.append("  \"time\": \"").append(chatJson.get("time")).append("\",\n");
-        sb.append("  \"messages\": [\n");
+        StringBuilder historySB = new StringBuilder("{\n");
+        historySB.append("  \"chatId\": \"").append(chatJson.get("chatId")).append("\",\n");
+        historySB.append("  \"date\": \"").append(chatJson.get("date")).append("\",\n");
+        historySB.append("  \"time\": \"").append(chatJson.get("time")).append("\",\n");
+        historySB.append("  \"messages\": [\n");
         List<String> msgs = (List<String>) chatJson.get("messages");
-        for (int i = 0; i < msgs.size(); i++) {
-            sb.append("    \"").append(msgs.get(i).replace("\"", "\\\"")).append("\"");
-            if (i < msgs.size() - 1) sb.append(",");
-            sb.append("\n");
+        for (int index = 0; index < msgs.size(); index++) {
+            historySB.append("    \"").append(msgs.get(index).replace("\"", "\\\"")).append("\"");
+            if (index < msgs.size() - 1) historySB.append(",");
+            historySB.append("\n");
         }
-        sb.append("  ]\n");
-        sb.append("}");
-        updatedChats.add(sb.toString());
-        FileUtils.saveToFile("Data/chat_history.json", updatedChats, s -> s);
+        historySB.append("  ]\n");
+        historySB.append("}");
+        updatedChats.add(historySB.toString());
+        FileUtils.saveToFile(CHAT_FILE, updatedChats, s -> s);
     }
 
 }

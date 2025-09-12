@@ -60,7 +60,7 @@
 }
 ,
 {
-  "fullName": "Aviv Hanuun",
+  "fullName": "Aviv Hanun",
   "employeeId": "000003455",
   "phoneNumber": "0347934934",
   "accountNumber": "Bank-111",
@@ -177,6 +177,18 @@
   "role": "SELLER",
   "userName": "justbieber",
   "password": "pass1234"
+}
+,
+{
+  "fullName": "Emma Wall",
+  "employeeId": "400000000",
+  "phoneNumber": "0531111111",
+  "accountNumber": "Bank-890",
+  "employeeNumber": 3020,
+  "branchId": "B001",
+  "role": "SELLER",
+  "userName": "emma12",
+  "password": "pass123"
 }
 
 ]

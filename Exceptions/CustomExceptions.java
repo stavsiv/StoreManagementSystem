@@ -95,13 +95,9 @@ public class CustomExceptions {
         public EmptyProductBranchException(String message) { super(message); }
     }
 
-    // -------------------- Custom Chat Exceptions --------------------
+    // Custom Chat Exceptions
     public static class ChatException extends Exception {
         public ChatException(String message) { super(message); }
-    }
-
-    public static class ChatBranchBusyException extends ChatException {
-        public ChatBranchBusyException(String message) { super(message); }
     }
 
     public static class ChatInactiveException extends ChatException {

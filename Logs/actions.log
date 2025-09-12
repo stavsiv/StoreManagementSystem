@@ -71,3 +71,8 @@
 [2025-09-05 19:33] SELL: Employee 'Juliet Snow' sold product 'P900' qty=2 to customer 'Monica Geller'
 [2025-09-06 23:47] Chat history saved for chat ID=CHAT-1000 by employee Juliet Snow (Branch=B002)
 [2025-09-06 23:50] Chat history saved for chat ID=CHAT-1000 by employee Stav Sivilya (Branch=B001)
+[2025-09-12 19:46] ADD EMPLOYEE: [Stav Sivilya, Role=ADMIN] added new employee 'Emma Wall' (ID=400000000, Branch=B001, Role=SELLER)
+[2025-09-12 19:50] ADD CUSTOMER: [Stav Sivilya, Role=ADMIN] added new customer 'Troy Bult' (ID=000000048, Type=VIP)
+[2025-09-12 19:51] ADD CUSTOMER: [Emma Wall, Role=SELLER] added new customer 'Gabi Weit' (ID=000000049, Type=NEW)
+[2025-09-12 19:53] Sales logs viewed by ADMIN Stav Sivilya
+[2025-09-12 20:18] Chat CHAT1001 ended by Stav Sivilya (Branch=B001). saved=false

@@ -145,5 +145,19 @@
   "phoneNumber": "0731111111",
   "type": "New"
 }
+,
+{
+  "fullName": "Troy Bult",
+  "customerId": "000000048",
+  "phoneNumber": "0571313131",
+  "type": "VIP"
+}
+,
+{
+  "fullName": "Gabi Weit",
+  "customerId": "000000049",
+  "phoneNumber": "0571313131",
+  "type": "New"
+}
 
 ]

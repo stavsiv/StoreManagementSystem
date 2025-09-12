@@ -77,43 +77,44 @@ public class LogsService {
      * Generates the content for the Word document (document.xml).
      */
     private static String generateDocumentXml(String branchJson, String productJson) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n");
-        sb.append("<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">\n");
-        sb.append("<w:body>\n");
 
         // Title
-        sb.append("<w:p><w:r><w:t>Sales Logs Conversion</w:t></w:r></w:p>\n");
-        sb.append("<w:p><w:r><w:t>======================</w:t></w:r></w:p>\n");
-
         // Section 1: Sales By Branch
-        sb.append("<w:p><w:r><w:t>1) Sales By Branch:</w:t></w:r></w:p>\n");
-        sb.append("<w:p><w:r><w:t>--------------------------------</w:t></w:r></w:p>\n");
-        sb.append(convertJsonToXml(branchJson));
-
         // Section 2: Sales By Product Type
-        sb.append("<w:p><w:r><w:t>2) Sales By Product Type:</w:t></w:r></w:p>\n");
-        sb.append("<w:p><w:r><w:t>--------------------------------</w:t></w:r></w:p>\n");
-        sb.append(convertJsonToXml(productJson));
+        return "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\"?>\n" +
+                "<w:document xmlns:w=\"http://schemas.openxmlformats.org/wordprocessingml/2006/main\">\n" +
+                "<w:body>\n" +
 
-        sb.append("</w:body>\n");
-        sb.append("</w:document>\n");
-        return sb.toString();
+                // Title
+                "<w:p><w:r><w:t>Sales Logs Conversion</w:t></w:r></w:p>\n" +
+                "<w:p><w:r><w:t>======================</w:t></w:r></w:p>\n" +
+
+                // Section 1: Sales By Branch
+                "<w:p><w:r><w:t>1) Sales By Branch:</w:t></w:r></w:p>\n" +
+                "<w:p><w:r><w:t>--------------------------------</w:t></w:r></w:p>\n" +
+                convertJsonToXml(branchJson) +
+
+                // Section 2: Sales By Product Type
+                "<w:p><w:r><w:t>2) Sales By Product Type:</w:t></w:r></w:p>\n" +
+                "<w:p><w:r><w:t>--------------------------------</w:t></w:r></w:p>\n" +
+                convertJsonToXml(productJson) +
+                "</w:body>\n" +
+                "</w:document>\n";
     }
 
     /**
      * Converts JSON sales data to Word-compatible XML format.
      */
     private static String convertJsonToXml(String json) {
-        StringBuilder sb = new StringBuilder();
+        StringBuilder stringBuilder = new StringBuilder();
 
         String[] lines = json.split("\n");
         for (String line : lines) {
             line = line.trim();
-            sb.append("<w:p><w:r><w:t>").append(line).append("</w:t></w:r></w:p>\n");
+            stringBuilder.append("<w:p><w:r><w:t>").append(line).append("</w:t></w:r></w:p>\n");
         }
 
-        return sb.toString();
+        return stringBuilder.toString();
     }
 
     /**

@@ -18,8 +18,7 @@ public class Employee {
     }
 
     // Constructor
-    public Employee(String fullName, String employeeId, String phoneNumber, String accountNumber,
-                    int employeeNumber, String branchId, Role role, String userName, String password)
+    public Employee(String fullName, String employeeId, String phoneNumber, String accountNumber, int employeeNumber, String branchId, Role role, String userName, String password)
             throws CustomExceptions.EmployeeException {
         setFullName(fullName);
         setEmployeeId(employeeId);

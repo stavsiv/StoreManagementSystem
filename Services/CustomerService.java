@@ -23,9 +23,9 @@ public class CustomerService {
     }
 
     public Customer getCustomerById(String id) {
-        for (Customer c : customersList) {
-            if (c.getCustomerId().equals(id)) {
-                return c;
+        for (Customer customer : customersList) {
+            if (customer.getCustomerId().equals(id)) {
+                return customer;
             }
         }
         return null;
@@ -34,4 +34,30 @@ public class CustomerService {
     public List<Customer> listAllCustomers() {
         return new ArrayList<>(customersList);
     }
+
+    public String formatCustomerList(List<Customer> customers) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("%-20s | %-10s | %-12s | %-10s | %-8s\n",
+                "Name", "Id", "Phone", "Type", "Discount"));
+        sb.append("-------------------------------------------------------------------------\n");
+
+        for (Customer c : customers) {
+            String discount = switch (c.getCustomerType().toLowerCase()) {
+                case "returning" -> "10%";
+                case "vip" -> "30%";
+                default -> "0%";
+            };
+
+            sb.append(String.format("%-20s | %-10s | %-12s | %-10s | %-8s\n",
+                    c.getCustomerName(),
+                    c.getCustomerId(),
+                    c.getPhoneNumber(),
+                    c.getCustomerType(),
+                    discount
+            ));
+        }
+
+        return sb.toString();
+    }
+
 }

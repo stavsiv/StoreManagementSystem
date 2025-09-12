@@ -28,4 +28,26 @@ public class EmployeeService {
     public List<Employee> listAllEmployees() {
         return new ArrayList<>(employees);
     }
+
+    public String formatEmployeeList(List<Employee> employees) {
+        StringBuilder employeeSB = new StringBuilder();
+        employeeSB.append(String.format("%-15s | %-12s | %-12s | %-12s | %-8s | %-10s | %-15s | %-12s\n",
+                "Name", "Id", "Phone", "BankAccount", "Branch", "EmpNum", "Role", "Username"));
+        employeeSB.append("---------------------------------------------------------------------------------------------------------------------\n");
+
+        for (Employee employee : employees) {
+            employeeSB.append(String.format("%-15s | %-12s | %-12s | %-12s | %-8s | %-10d | %-15s | %-12s\n",
+                    employee.getFullName(),
+                    employee.getEmployeeId(),
+                    employee.getPhoneNumber(),
+                    employee.getAccountNumber(),
+                    employee.getBranchId(),
+                    employee.getEmployeeNumber(),
+                    employee.getRole(),
+                    employee.getUserName()
+            ));
+        }
+
+        return employeeSB.toString();
+    }
 }
