@@ -213,7 +213,7 @@ public class ClientHandler implements Runnable {
             case "ACCEPT" -> handleAcceptChatOffer(parts);
             case "BEGIN" -> handleJoinChatRequester(parts);
             case "JOIN" -> handleJoinExistingChat(parts);
-            case "CHAT_HISTORY" -> handleShowChat();
+            case "CHAT_HISTORY" -> handleShowChatHistory();
             case "LEAVE_CHAT" -> handleLeaveChat(parts);
             case "LIVE_CHATS" -> handleListJoinableChats();
             case "END_CHAT" -> handleEndChat();
@@ -769,7 +769,9 @@ public class ClientHandler implements Runnable {
             // try to resolve the other side currently attached (assignee)
             String assigneeDisplay = chatService.displayOf(chatSession.getAssigneeSessionId());
             chatSession.addMessage(new ChatService.ChatMessage(
-                    "SYSTEM", reqBranch, "Requester joined: " + requesterDisplay + ".\nCurrent assigned: " + assigneeDisplay + "."));
+                    "SYSTEM", reqBranch, "Requester joined: " + requesterDisplay + "."));
+            chatSession.addMessage(new ChatService.ChatMessage(
+                    "SYSTEM", chatSession.getTargetBranch() , "Current assigned: " + assigneeDisplay + "."));
 
             currentChatId = chatId;
             return "use "+bold("CHAT_HISTORY")+" to see history.";
@@ -912,6 +914,8 @@ public class ClientHandler implements Runnable {
                 String endedBy = loggedInEmployee.getFullName() + " (" + loggedInEmployee.getRole().name() + ", " + loggedInEmployee.getBranchId() + ")";
 
                 chatSession.addMessage(new ChatService.ChatMessage("SYSTEM", loggedInEmployee.getBranchId(), "Chat ended by " + endedBy + "\nType " + bold("Menu") + " to see available commands, or " +bold("Exit") + " to exit."));
+                logAction(String.format("Chat %s ended by %s (Branch=%s). saved=%s",
+                    currentChatId, loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(), saved));
                 chatListeners.remove(currentChatId);
                 chatService.endChat(currentChatId);
             } 
@@ -924,13 +928,11 @@ public class ClientHandler implements Runnable {
             return "Error handling chat end: " + e.getMessage();
         }
 
-        logAction(String.format("Chat %s ended by %s (Branch=%s). saved=%s",
-                currentChatId, loggedInEmployee.getFullName(), loggedInEmployee.getBranchId(), saved));
         currentChatId = null;
         return "";
     }
 
-    private String handleShowChat() {
+    private String handleShowChatHistory() {
         if (currentChatId == null) return "ERROR: You are not currently in a chat.";
 
         ChatService.ChatSession chatSession;

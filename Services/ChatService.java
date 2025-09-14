@@ -51,8 +51,8 @@ public class ChatService {
 
     public static class ChatSession {
         private final String chatId;
-        private final String branchA; // requester branch
-        private final String branchB; // assignee branch
+        private final String requesterBranch; // requester branch
+        private final String targetBranch; // assignee branch
 
         private volatile String assigneeSessionId; // session that accepted the offer
 
@@ -64,10 +64,10 @@ public class ChatService {
         private volatile boolean active = true;
         volatile ScheduledFuture<?> soloTimer;
 
-        public ChatSession(String chatId, String branchA, String branchB) {
+        public ChatSession(String chatId, String requesterBranch, String targetBranch) {
             this.chatId = chatId;
-            this.branchA = branchA;
-            this.branchB = branchB;
+            this.requesterBranch = requesterBranch;
+            this.targetBranch = targetBranch;
         }
 
         public synchronized void addListener(String branchId, String sessionId, Consumer<ChatMessage> listener) {
@@ -103,6 +103,8 @@ public class ChatService {
         public void setActive(boolean active) { this.active = active; }
         public String getAssigneeSessionId() { return assigneeSessionId; }
         public void setAssigneeSessionId(String sessionId) { this.assigneeSessionId = sessionId; }
+        public String getRequesterBranch() { return requesterBranch; }
+        public String getTargetBranch() { return targetBranch; }
 
         static final class ListenerRegistration {
             final String sessionId;
@@ -169,6 +171,29 @@ public class ChatService {
 
     private void cancelTimer(ScheduledFuture<?> future) { if (future != null) future.cancel(false); }
     private static String bold(String string) { return "\u001B[1m" + string + "\u001B[0m"; }
+
+    private static String jsonEscape(String s) {
+        if (s == null) return "";
+        StringBuilder sb = new StringBuilder(s.length() + 16);
+        for (int i = 0; i < s.length(); i++) {
+            char c = s.charAt(i);
+            switch (c) {
+                case '\\' -> sb.append("\\\\");
+                case '"'  -> sb.append("\\\"");
+                case '\b' -> sb.append("\\b");
+                case '\f' -> sb.append("\\f");
+                case '\n' -> sb.append("\\n");
+                case '\r' -> sb.append("\\r");
+                case '\t' -> sb.append("\\t");
+                default -> {
+                    if (c < 0x20) sb.append(String.format("\\u%04x", (int) c));
+                    else sb.append(c);
+                }
+            }
+        }
+        return sb.toString();
+    }
+
 
     private void notifyParticipants(ChatSession chatSession, String payload) {
         List<String> snapshot = new ArrayList<>(chatSession.getParticipants());
@@ -432,7 +457,7 @@ public class ChatService {
 
             boolean isOriginalAssignee = Objects.equals(assigneeEmployeeIdByChatId.get(chatSession.getChatId()), employeeId);
             boolean isShiftManagerOfChatBranches = role == Role.SHIFT_MANAGER &&
-                    (Objects.equals(branchId, chatSession.branchA) || Objects.equals(branchId, chatSession.branchB));
+                    (Objects.equals(branchId, chatSession.requesterBranch) || Objects.equals(branchId, chatSession.targetBranch));
 
             if (isOriginalRequester || isOriginalAssignee || isShiftManagerOfChatBranches) result.add(chatSession);
         }
@@ -452,7 +477,7 @@ public class ChatService {
         if (isInActiveChatOtherThan(requesterSessionId, chatId))
             throw new CustomExceptions.ChatException("You’re already connected to another active chat. Please leave or end it before joining this one.");
 
-        if (!Objects.equals(requesterBranch, chatSession.branchA) && !Objects.equals(requesterBranch, chatSession.branchB))
+        if (!Objects.equals(requesterBranch, chatSession.requesterBranch) && !Objects.equals(requesterBranch, chatSession.targetBranch))
             throw new CustomExceptions.ChatException("Branch not allowed to join this chat.");
 
         chatSession.addListener(requesterBranch, requesterSessionId, requesterListener);
@@ -473,7 +498,7 @@ public class ChatService {
         if (chatSession == null || !chatSession.isActive()) throw new CustomExceptions.ChatException("Chat not found or inactive.");
 
         boolean isShiftManagerOfChatBranches = role == Role.SHIFT_MANAGER &&
-                (Objects.equals(branchId, chatSession.branchA) || Objects.equals(branchId, chatSession.branchB));
+                (Objects.equals(branchId, chatSession.requesterBranch) || Objects.equals(branchId, chatSession.targetBranch));
         ChatRequest request = requestByChatId.get(chatId);
         boolean isOriginalRequester = (request != null && Objects.equals(request.sourceEmployeeId, employeeId));
         String assigneeEmployeeId = assigneeEmployeeIdByChatId.get(chatId);
@@ -538,38 +563,54 @@ public class ChatService {
         }
     }
 
-    // Persistence (optional)
     public void saveChatHistory(String chatId) {
         ChatSession chatSession = getChatById(chatId);
         if (chatSession == null) return;
 
-        Map<String, Object> chatJson = new LinkedHashMap<>();
-        chatJson.put("chatId", chatSession.getChatId());
-        chatJson.put("date", LocalDate.now().toString());
-        chatJson.put("time", LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm")));
-        List<String> messages = chatSession.getMessages().stream()
-                .map(msg -> msg.getSenderName() + " (" + msg.getSenderBranch() + "): " + msg.getContent())
-                .toList();
-        chatJson.put("messages", messages);
+        String date = LocalDate.now().toString();
+        String time = LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm"));
 
-        List<String> existing = FileUtils.readJsonObjectsFromFile(CHAT_FILE);
-        List<String> updated = new ArrayList<>();
-        for (String chat : existing) if (chat != null && !chat.isBlank()) updated.add(chat);
-
-        StringBuilder historySB = new StringBuilder("{\n");
-        historySB.append("  \"chatId\": \"").append(chatJson.get("chatId")).append("\",\n");
-        historySB.append("  \"date\": \"").append(chatJson.get("date")).append("\",\n");
-        historySB.append("  \"time\": \"").append(chatJson.get("time")).append("\",\n");
-        historySB.append("  \"messages\": [\n");
-        List<String> msgs = (List<String>) chatJson.get("messages");
-        for (int i = 0; i < msgs.size(); i++) {
-            historySB.append("    \"").append(msgs.get(i).replace("\"", "\\\"")).append("\"");
-            if (i < msgs.size() - 1) historySB.append(",");
-            historySB.append("\n");
+        
+        List<String> msgLiterals = new ArrayList<>();
+        for (ChatMessage m : chatSession.getMessages()) {
+            String line = m.getSenderName() + " (" + m.getSenderBranch() + "): " + m.getContent();
+            msgLiterals.add("    \"" + jsonEscape(line) + "\"");
         }
-        historySB.append("  ]\n");
-        historySB.append("}");
-        updated.add(historySB.toString());
-        FileUtils.saveToFile(CHAT_FILE, updated, s -> s);
+
+        
+        String newObject =
+            "{\n" +
+            "  \"chatId\": \"" + jsonEscape(chatSession.getChatId()) + "\",\n" +
+            "  \"date\": \"" + jsonEscape(date) + "\",\n" +
+            "  \"time\": \"" + jsonEscape(time) + "\",\n" +
+            "  \"messages\": [\n" +
+                String.join(",\n", msgLiterals) + "\n" +
+            "  ]\n" +
+            "}";
+
+        
+        List<String> existing = FileUtils.readJsonObjectsFromFile(CHAT_FILE);
+        List<String> cleaned = new ArrayList<>();
+
+        for (String obj : existing) {
+            if (obj == null) continue;
+            String t = obj.trim();
+            if (t.isEmpty()) continue;
+
+            
+            if (t.equals("[") || t.equals("]") || t.equals(",")) continue;
+
+            
+            if (t.startsWith(",")) t = t.substring(1).trim();
+            if (t.endsWith(","))   t = t.substring(0, t.length() - 1).trim();
+
+            if (!t.isEmpty()) cleaned.add(t);
+        }
+
+        
+        cleaned.add(newObject);
+
+
+        FileUtils.saveToFile(CHAT_FILE, cleaned, s -> s);
     }
 }
