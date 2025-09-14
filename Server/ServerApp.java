@@ -25,6 +25,7 @@ public class ServerApp {
     private final CustomerService customerService = new CustomerService();
     SaleService saleService = new SaleService(productService);
     private final ChatService chatService = new ChatService();
+    private final BranchService branchService = new BranchService();
 
     // File paths for reading/writing JSON on startup or updates
     private static final String BRANCHES_FILE = "Data/branches.json";
@@ -38,7 +39,6 @@ public class ServerApp {
         // Load branches
         for (String branchJson : FileUtils.readJsonObjectsFromFile(BRANCHES_FILE)) {
             Branch currBranch = FileUtils.parseBranchFromJson(branchJson);
-            BranchService branchService = new BranchService();
             if (currBranch != null) branchService.addBranch(currBranch);
         }
 
@@ -76,8 +76,15 @@ public class ServerApp {
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 System.out.println("Client connected: " + clientSocket.getInetAddress());
-                ClientHandler handler = new ClientHandler(clientSocket, authService, employeeService, productService, customerService, saleService,chatService);
-
+                ClientHandler handler = new ClientHandler(
+                    clientSocket, 
+                    authService, 
+                    employeeService, 
+                    productService, 
+                    customerService, 
+                    saleService, 
+                    chatService, 
+                    branchService);
                 new Thread(handler).start();
             }
 

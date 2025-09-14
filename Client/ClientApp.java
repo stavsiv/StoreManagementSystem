@@ -27,7 +27,7 @@ public class ClientApp {
                 try {
                     String line;
                     while ((line = in.readLine()) != null) {
-                        System.out.println("Server--> " + line);
+                        System.out.println(line);
                     }
                 } catch (IOException e) {
                     // connection closed

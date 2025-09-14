@@ -18,4 +18,9 @@ public class BranchService {
             throw new CustomExceptions.InvalidBranchIdException("Branch ID already exists: " + branch.getBranchId());
         branches.put(branch.getBranchId(), branch);
     }
+
+    public boolean branchExists(String branchId) {
+    if (branchId == null) return false;
+    return branches.containsKey(branchId);
+    }
 }

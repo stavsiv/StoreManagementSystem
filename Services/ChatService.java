@@ -168,6 +168,7 @@ public class ChatService {
     private String newChatId() { return "CHAT-" + chatCounter.getAndIncrement(); }
 
     private void cancelTimer(ScheduledFuture<?> future) { if (future != null) future.cancel(false); }
+    private static String bold(String string) { return "\u001B[1m" + string + "\u001B[0m"; }
 
     private void notifyParticipants(ChatSession chatSession, String payload) {
         List<String> snapshot = new ArrayList<>(chatSession.getParticipants());
@@ -200,26 +201,26 @@ public class ChatService {
             return;
         }
 
-        ChatOffer offer = new ChatOffer(assigneeSessionId, chatRequest);
-        pendingOffersByRequestId.put(requestId, offer);
+        ChatOffer chatOffer = new ChatOffer(assigneeSessionId, chatRequest);
+        pendingOffersByRequestId.put(requestId, chatOffer);
         requestIdByAssigneeSession.put(assigneeSessionId, requestId);
 
         Consumer<String> assigneeCallback = directNotifyBySession.get(assigneeSessionId);
         if (assigneeCallback != null) {
-            String noteSuffix = (chatRequest.note == null || chatRequest.note.isBlank()) ? "" : (" – " + chatRequest.note);
-            assigneeCallback.accept("[OFFER] Incoming chat from " + chatRequest.sourceBranch + ". Use ACCEPT to accept the chat." + noteSuffix);
+            String noteSuffix = (chatRequest.note == null || chatRequest.note.isBlank()) ? "" : (bold("(note): ") + chatRequest.note);
+            assigneeCallback.accept("[OFFER] Incoming chat from " + chatRequest.sourceBranch + ". Use " + bold("ACCEPT") + " to accept the chat." + noteSuffix);
         }
 
-        offer.offerTimeoutTask = scheduler.schedule(() -> onOfferTimeout(requestId), OFFER_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        chatOffer.offerTimeoutTask = scheduler.schedule(() -> onOfferTimeout(requestId), OFFER_TIMEOUT_MS, TimeUnit.MILLISECONDS);
     }
 
     private void onOfferTimeout(String requestId) {
-        ChatOffer offer = pendingOffersByRequestId.remove(requestId);
-        if (offer == null) return;
-        requestIdByAssigneeSession.remove(offer.assigneeSessionId, requestId);
-        setIdle(offer.assigneeSessionId, true);
-        waitingRequestsByTargetBranch.computeIfAbsent(offer.chatRequest.targetBranch, _ -> new ConcurrentLinkedQueue<>()).add(offer.chatRequest);
-        tryMatch(offer.chatRequest.targetBranch);
+        ChatOffer chatOffer = pendingOffersByRequestId.remove(requestId);
+        if (chatOffer == null) return;
+        requestIdByAssigneeSession.remove(chatOffer.assigneeSessionId, requestId);
+        setIdle(chatOffer.assigneeSessionId, true);
+        waitingRequestsByTargetBranch.computeIfAbsent(chatOffer.chatRequest.targetBranch, _ -> new ConcurrentLinkedQueue<>()).add(chatOffer.chatRequest);
+        tryMatch(chatOffer.chatRequest.targetBranch);
     }
 
     private void onRequesterAttachTimeout(ChatRequest chatRequest, ChatSession chatSession, String assigneeSessionId) {
@@ -227,9 +228,9 @@ public class ChatService {
             Set<String> chatsOfAssignee = activeChatsBySession.get(assigneeSessionId);
             if (chatsOfAssignee != null) chatsOfAssignee.remove(chatSession.getChatId());
 
-            String branchForSystem = chatSession.getBranchOfSession(assigneeSessionId);
-            if (branchForSystem == null) branchForSystem = chatSession.getBranchesInvolved().stream().findFirst().orElse("");
-            chatSession.addMessage(new ChatMessage("SYSTEM", branchForSystem, "Requester didn't answer, cancelling the chat"));
+            String targetBranch = chatSession.getBranchOfSession(assigneeSessionId);
+            if (targetBranch == null) targetBranch = chatSession.getBranchesInvolved().stream().findFirst().orElse("");
+            chatSession.addMessage(new ChatMessage("SYSTEM", targetBranch, "Requester didn't answer, cancelling the chat"));
 
             setIdle(assigneeSessionId, true);
             endSessionOnly(chatSession);
@@ -280,12 +281,12 @@ public class ChatService {
     }
 
     private boolean isInActiveChatOtherThan(String sessionId, String exceptChatId) {
-        Set<String> chats = activeChatsBySession.getOrDefault(sessionId, Collections.emptySet());
-        if (chats.isEmpty()) return false;
-        for (String id : chats) {
-            if (!Objects.equals(id, exceptChatId)) {
-                ChatSession cs = chatIdToSession.get(id);
-                if (cs != null && cs.isActive()) return true;
+        Set<String> activeChatSessions = activeChatsBySession.getOrDefault(sessionId, Collections.emptySet());
+        if (activeChatSessions.isEmpty()) return false;
+        for (String chatId : activeChatSessions) {
+            if (!Objects.equals(chatId, exceptChatId)) {
+                ChatSession chatSession = chatIdToSession.get(chatId);
+                if (chatSession != null && chatSession.isActive()) return true;
             }
         }
         return false;
@@ -295,6 +296,14 @@ public class ChatService {
     public Collection<ChatSession> listAllChats() { return chatIdToSession.values(); }
     public ChatSession getChatById(String chatId) { return chatIdToSession.get(chatId); }
     public String displayOf(String sessionId) { return sessionDisplayBySessionId.getOrDefault(sessionId, sessionId); }
+    
+
+
+    public boolean hasOnlineInBranch(String branchId) {
+    if (branchId == null) return false;
+    Set<String> sessionId = connectedSessionsByBranch.get(branchId);
+    return sessionId != null && !sessionId.isEmpty();
+    }
 
     // Presence & readiness
     public void connect(String sessionId, String branchId, String employeeId, String display, Consumer<String> directNotify) {
@@ -321,8 +330,8 @@ public class ChatService {
 
         String requestId = requestIdByAssigneeSession.remove(sessionId);
         if (requestId != null) {
-            ChatOffer offer = pendingOffersByRequestId.get(requestId);
-            if (offer != null && offer.assigneeSessionId.equals(sessionId)) onOfferTimeout(requestId);
+            ChatOffer chatOffer = pendingOffersByRequestId.get(requestId);
+            if (chatOffer != null && chatOffer.assigneeSessionId.equals(sessionId)) onOfferTimeout(requestId);
         }
         sessionIdToEmployeeId.remove(sessionId);
     }
@@ -372,39 +381,39 @@ public class ChatService {
         String requestId = requestIdByAssigneeSession.remove(assigneeSessionId);
         if (requestId == null) throw new CustomExceptions.ChatException("No active offer for your session.");
 
-        ChatOffer offer = pendingOffersByRequestId.remove(requestId);
-        if (offer == null) throw new CustomExceptions.ChatException("Offer expired or reassigned.");
-        if (!Objects.equals(offer.assigneeSessionId, assigneeSessionId))
+        ChatOffer chatOffer = pendingOffersByRequestId.remove(requestId);
+        if (chatOffer == null) throw new CustomExceptions.ChatException("Offer expired or reassigned.");
+        if (!Objects.equals(chatOffer.assigneeSessionId, assigneeSessionId))
             throw new CustomExceptions.ChatException("You are not the assigned employee for this offer.");
 
         if (!activeChatsBySession.getOrDefault(assigneeSessionId, Collections.emptySet()).isEmpty())
             throw new CustomExceptions.ChatException("You are already in a chat.");
 
-        cancelTimer(offer.offerTimeoutTask);
-        Deque<String> idleDeque = idleSessionsByBranch.get(offer.chatRequest.targetBranch);
+        cancelTimer(chatOffer.offerTimeoutTask);
+        Deque<String> idleDeque = idleSessionsByBranch.get(chatOffer.chatRequest.targetBranch);
         if (idleDeque != null) idleDeque.remove(assigneeSessionId);
 
         String chatId = newChatId();
         String assigneeEmployeeId = sessionIdToEmployeeId.get(assigneeSessionId);
-        ChatSession chatSession = new ChatSession(chatId, offer.chatRequest.sourceBranch, offer.chatRequest.targetBranch);
+        ChatSession chatSession = new ChatSession(chatId, chatOffer.chatRequest.sourceBranch, chatOffer.chatRequest.targetBranch);
         chatIdToSession.put(chatId, chatSession);
-        requestByChatId.put(chatId, offer.chatRequest);
+        requestByChatId.put(chatId, chatOffer.chatRequest);
         if (assigneeEmployeeId != null) assigneeEmployeeIdByChatId.put(chatId, assigneeEmployeeId);
 
         chatSession.setAssigneeSessionId(assigneeSessionId);
-        chatSession.addListener(offer.chatRequest.targetBranch, assigneeSessionId, assigneeListener);
+        chatSession.addListener(chatOffer.chatRequest.targetBranch, assigneeSessionId, assigneeListener);
         activeChatsBySession.computeIfAbsent(assigneeSessionId, _ -> ConcurrentHashMap.newKeySet()).add(chatId);
         setIdle(assigneeSessionId, false);
 
         String assigneeDisplay = displayOf(assigneeSessionId);
-        chatSession.addMessage(new ChatMessage("SYSTEM", offer.chatRequest.targetBranch, "Assignee " + assigneeDisplay + " joined."));
+        chatSession.addMessage(new ChatMessage("SYSTEM", chatOffer.chatRequest.targetBranch, "Assignee " + assigneeDisplay + " joined."));
 
-        if (offer.chatRequest.notifyCallback != null) {
-            offer.chatRequest.notifyCallback.accept("[" + offer.chatRequest.targetBranch + " ACCEPTED] ChatID: " + chatId + ". Run: BEGIN " + chatId + " within 60 seconds.");
+        if (chatOffer.chatRequest.notifyCallback != null) {
+            chatOffer.chatRequest.notifyCallback.accept("[" + chatOffer.chatRequest.targetBranch + " ACCEPTED] ChatID: " + chatId + ". Run: " + bold("BEGIN " + chatId) + " within 60 seconds.");
         }
 
         ScheduledFuture<?> requesterTimer = scheduler.schedule(
-                () -> onRequesterAttachTimeout(offer.chatRequest, chatSession, assigneeSessionId),
+                () -> onRequesterAttachTimeout(chatOffer.chatRequest, chatSession, assigneeSessionId),
                 REQUESTER_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         requesterAttachTimersByChat.put(chatId, requesterTimer);
 
@@ -438,7 +447,7 @@ public class ChatService {
         ChatRequest request = requestByChatId.get(chatId);
         if (request == null) throw new CustomExceptions.ChatException("Chat has no originating request.");
         if (!Objects.equals(request.sourceEmployeeId, requesterEmployeeId))
-            throw new CustomExceptions.ChatException("Only the original requester can join with BEGIN.");
+            throw new CustomExceptions.ChatException("Only the original requester can join with "+bold("BEGIN"));
 
         if (isInActiveChatOtherThan(requesterSessionId, chatId))
             throw new CustomExceptions.ChatException("You’re already connected to another active chat. Please leave or end it before joining this one.");
