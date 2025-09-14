@@ -1,17 +1,5 @@
 [
 {
-  "fullName": "David Admin",
-  "employeeId": "000000002",
-  "phoneNumber": "0507777777",
-  "accountNumber": "Bank-100",
-  "employeeNumber": 2000,
-  "branchId": "HQ01",
-  "role": "ADMIN",
-  "userName": "davidA",
-  "password": "davidadmin"
-}
-,
-{
   "fullName": "Ella Manager",
   "employeeId": "000000101",
   "phoneNumber": "0508888888",
@@ -129,18 +117,6 @@
   "role": "CASHIER",
   "userName": "oshi",
   "password": "223344"
-}
-,
-{
-  "fullName": "Baily Nune",
-  "employeeId": "089044565",
-  "phoneNumber": "0571212333",
-  "accountNumber": "Bank-888",
-  "employeeNumber": 495485,
-  "branchId": "BOO2",
-  "role": "ADMIN",
-  "userName": "Bilin",
-  "password": "45666"
 }
 ,
 {

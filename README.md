@@ -38,7 +38,7 @@ A full **Store Network Management** featuring:
 
 ##  Class Reference
 
-| Package | Kind | Class | purpuse |
+| Package | Kind | Class | Purpose |
 |---|---|---|---|
 | `Client` | `class` | **ClientApp** | Starts the client; logs into server. |
 | `Exceptions` | `class` | **CustomExceptions** | Defines typed domain/validation errors. |
@@ -54,8 +54,8 @@ A full **Store Network Management** featuring:
 | `Server` | `class` | **ClientHandler** | Handles a single client on its own thread. |
 | `Server.Utils` | `class` | **FileUtils** | File I/O and JSON serialization helpers. |
 | `Services` | `class` | **AuthService** | Login/logout; session management; block duplicates. |
-| `Services` | `class` | **BranchService** | Branch validition |
-| `Services` | `class` | **CustomerService** | Customer and searches validition. |
+| `Services` | `class` | **BranchService** | Branch validation |
+| `Services` | `class` | **CustomerService** | Customer and searches validation. |
 | `Services` | `class` | **EmployeeService** | Employee role/branch assignment. |
 | `Services` | `class` | **ProductService** | Product inventory operations. |
 | `Services` | `class` | **SaleService** | Validate stock; apply pricing; record sales. |
