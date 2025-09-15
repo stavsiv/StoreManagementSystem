@@ -83,5 +83,6 @@ Stanislav Berlovich, 323539015
 Internet Programming in Java
 
 ## Lecturer
-- Roey Zimon
+Mr. Roey Zimon
+
 ---
