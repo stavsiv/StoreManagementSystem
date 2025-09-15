@@ -16,7 +16,6 @@ import Models.Role;
 /**
  * Chat flow: queue → offer (60s) → assignee joins → requester joins (60s) → active →
  *   solo participant (120s auto-close) → end.
- *
  * All public methods are used by ClientHandler.
  * Naming is explicit, comments are concise, and behavior is deterministic.
  */
@@ -103,7 +102,7 @@ public class ChatService {
         public void setActive(boolean active) { this.active = active; }
         public String getAssigneeSessionId() { return assigneeSessionId; }
         public void setAssigneeSessionId(String sessionId) { this.assigneeSessionId = sessionId; }
-        public String getRequesterBranch() { return requesterBranch; }
+
         public String getTargetBranch() { return targetBranch; }
 
         static final class ListenerRegistration {
@@ -590,6 +589,13 @@ public class ChatService {
 
         
         List<String> existing = FileUtils.readJsonObjectsFromFile(CHAT_FILE);
+        List<String> cleaned = getStringList(existing, newObject);
+
+
+        FileUtils.saveToFile(CHAT_FILE, cleaned, s -> s);
+    }
+
+    private static List<String> getStringList(List<String> existing, String newObject) {
         List<String> cleaned = new ArrayList<>();
 
         for (String obj : existing) {
@@ -597,20 +603,18 @@ public class ChatService {
             String t = obj.trim();
             if (t.isEmpty()) continue;
 
-            
+
             if (t.equals("[") || t.equals("]") || t.equals(",")) continue;
 
-            
+
             if (t.startsWith(",")) t = t.substring(1).trim();
             if (t.endsWith(","))   t = t.substring(0, t.length() - 1).trim();
 
             if (!t.isEmpty()) cleaned.add(t);
         }
 
-        
+
         cleaned.add(newObject);
-
-
-        FileUtils.saveToFile(CHAT_FILE, cleaned, s -> s);
+        return cleaned;
     }
 }

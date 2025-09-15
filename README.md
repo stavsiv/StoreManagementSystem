@@ -71,3 +71,17 @@ A full **Store Network Management** featuring:
 - **Architecture:** Client–Server  
 - **Data Format:** JSON
 ---
+
+## Developed by
+Stav Sivilya, 318430667
+Ariel Kurichar, 209506047
+Roman Dubrovin, 324306661
+Aviv Hanoon, 213389315
+Stanislav Berlovich, 323539015
+
+## Course
+Internet Programming in Java
+
+## Lecturer
+Roey Zimon
+---

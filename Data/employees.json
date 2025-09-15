@@ -166,5 +166,17 @@
   "userName": "emma12",
   "password": "pass123"
 }
+,
+{
+  "fullName": "Omer Fridman",
+  "employeeId": "400000001",
+  "phoneNumber": "0541122334",
+  "accountNumber": "Bsnk-200",
+  "employeeNumber": 3021,
+  "branchId": "B004",
+  "role": "SELLER",
+  "userName": "omerf",
+  "password": "pass123"
+}
 
 ]

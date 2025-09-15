@@ -76,3 +76,4 @@
 [2025-09-12 19:51] ADD CUSTOMER: [Emma Wall, Role=SELLER] added new customer 'Gabi Weit' (ID=000000049, Type=NEW)
 [2025-09-12 19:53] Sales logs viewed by ADMIN Stav Sivilya
 [2025-09-12 20:18] Chat CHAT1001 ended by Stav Sivilya (Branch=B001). saved=false
+[2025-09-15 12:00] ADD EMPLOYEE: [Stav Sivilya, Role=ADMIN] added new employee 'Omer Fridman' (ID=400000001, Branch=B004, Role=SELLER)
