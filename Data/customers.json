@@ -159,5 +159,12 @@
   "phoneNumber": "0571313131",
   "type": "New"
 }
+,
+{
+  "fullName": "Ariel Bronshtein",
+  "customerId": "000000050",
+  "phoneNumber": "0579999999",
+  "type": "VIP"
+}
 
 ]

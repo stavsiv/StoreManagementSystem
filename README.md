@@ -38,29 +38,29 @@ A full **Store Network Management** featuring:
 
 ##  Class Reference
 
-| Package | Kind | Class | Purpose |
-|---|---|---|---|
-| `Client` | `class` | **ClientApp** | Starts the client; logs into server. |
-| `Exceptions` | `class` | **CustomExceptions** | Defines typed domain/validation errors. |
-| `Models` | `class` | **Branch** | Represents a store branch (id, name). |
-| `Models` | `abstract class` | **Customer** | Base customer; validation and pricing hooks. |
-| `Models` | `class` | **Employee** | Employee data: branch, role, credentials. |
-| `Models` | `class` | **Product** | Product data: category, price, stock, branch. |
-| `Models` | `class` | **NewCustomer** | Pricing strategy for new customers. |
-| `Models` | `class` | **ReturningCustomer** | Pricing strategy for returning customers. |
-| `Models` | `class` | **VIPCustomer** | Pricing strategy for VIP customers. |
-| `Models` | `enum` | **Role** | Enumerates employee roles. |
-| `Server` | `class` | **ServerApp** | Bootstraps services; listens for clients. |
-| `Server` | `class` | **ClientHandler** | Handles a single client on its own thread. |
-| `Server.Utils` | `class` | **FileUtils** | File I/O and JSON serialization helpers. |
-| `Services` | `class` | **AuthService** | Login/logout; session management; block duplicates. |
-| `Services` | `class` | **BranchService** | Branch validation |
-| `Services` | `class` | **CustomerService** | Customer and searches validation. |
-| `Services` | `class` | **EmployeeService** | Employee role/branch assignment. |
-| `Services` | `class` | **ProductService** | Product inventory operations. |
-| `Services` | `class` | **SaleService** | Validate stock; apply pricing; record sales. |
-| `Services` | `class` | **ChatService** | Queue and route cross-branch chats. |
-| `Services` | `class` | **LogsService** | Write logs. |
+| Package        | Kind             | Class                 | Purpose                                             |
+|----------------|------------------|-----------------------|-----------------------------------------------------|
+| `Client`       | `class`          | **ClientApp**         | Starts the client; logs into server.                |
+| `Exceptions`   | `class`          | **CustomExceptions**  | Defines typed domain/validation errors.             |
+| `Models`       | `class`          | **Branch**            | Represents a store branch (id, name).               |
+| `Models`       | `abstract class` | **Customer**          | Base customer; validation and pricing hooks.        |
+| `Models`       | `class`          | **Employee**          | Employee data: branch, role, credentials.           |
+| `Models`       | `class`          | **Product**           | Product data: category, price, stock, branch.       |
+| `Models`       | `class`          | **NewCustomer**       | Pricing strategy for new customers.                 |
+| `Models`       | `class`          | **ReturningCustomer** | Pricing strategy for returning customers.           |
+| `Models`       | `class`          | **VIPCustomer**       | Pricing strategy for VIP customers.                 |
+| `Models`       | `enum`           | **Role**              | Enumerates employee roles.                          |
+| `Server`       | `class`          | **ServerApp**         | Bootstraps services; listens for clients.           |
+| `Server`       | `class`          | **ClientHandler**     | Handles a single client on its own thread.          |
+| `Server.Utils` | `class`          | **FileUtils**         | File I/O and JSON serialization helpers.            |
+| `Services`     | `class`          | **AuthService**       | Login/logout; session management; block duplicates. |
+| `Services`     | `class`          | **BranchService**     | Branch validation                                   |
+| `Services`     | `class`          | **CustomerService**   | Customer and searches validation.                   |
+| `Services`     | `class`          | **EmployeeService**   | Employee role/branch assignment.                    |
+| `Services`     | `class`          | **ProductService**    | Product inventory operations.                       |
+| `Services`     | `class`          | **SaleService**       | Validate stock; apply pricing; record sales.        |
+| `Services`     | `class`          | **ChatService**       | Queue and route cross-branch chats.                 |
+| `Services`     | `class`          | **LogsService**       | Write logs.                                         |
 
 
 ---
@@ -83,5 +83,5 @@ Stanislav Berlovich, 323539015
 Internet Programming in Java
 
 ## Lecturer
-Roey Zimon
+- Roey Zimon
 ---
