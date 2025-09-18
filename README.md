@@ -73,11 +73,11 @@ A full **Store Network Management** featuring:
 ---
 
 ## Developed by
-Stav Sivilya, 318430667
-Ariel Kurichar, 209506047
-Roman Dubrovin, 324306661
-Aviv Hanoon, 213389315
-Stanislav Berlovich, 323539015
+Stav Sivilya
+Ariel Kurichar
+Roman Dubrovin
+Aviv Hanoon
+Stanislav Berlovich
 
 ## Course
 Internet Programming in Java
